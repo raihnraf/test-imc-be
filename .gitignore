@@ -1,0 +1,7 @@
+vendor/
+.env
+logs/
+*.log
+.phpunit.result.cache
+.phpunit.cache/
+docker/pgdata/
