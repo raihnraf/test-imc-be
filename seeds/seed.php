@@ -24,6 +24,8 @@ $capsule->addConnection([
 $capsule->setAsGlobal();
 $capsule->bootEloquent();
 
+Capsule::table('level_permissions')->truncate();
+Capsule::table('user_permissions')->truncate();
 Capsule::table('levels')->truncate();
 Capsule::table('pages')->truncate();
 Capsule::table('users')->truncate();
@@ -56,8 +58,17 @@ Capsule::table('users')->insert([
     'is_active' => true,
 ]);
 
+// Grant all pages to Super Admin (level_id = 1)
+$pages = Capsule::table('pages')->get();
+$permissions = [];
+foreach ($pages as $page) {
+    $permissions[] = ['level_id' => 1, 'page_id' => $page->id];
+}
+Capsule::table('level_permissions')->insert($permissions);
+
 $levelsCount = Capsule::table('levels')->count();
 $pagesCount = Capsule::table('pages')->count();
 $usersCount = Capsule::table('users')->count();
+$permsCount = Capsule::table('level_permissions')->count();
 
-echo "Seed complete: {$levelsCount} levels, {$pagesCount} pages, {$usersCount} admin user created\n";
+echo "Seed complete: {$levelsCount} levels, {$pagesCount} pages, {$usersCount} admin user created, {$permsCount} level permissions granted\n";

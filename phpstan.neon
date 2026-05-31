@@ -1,0 +1,12 @@
+parameters:
+    level: 5
+    paths:
+        - src
+        - tests
+    excludePaths:
+        - vendor
+    ignoreErrors:
+        # Capsule::instance() is valid but PHPStan doesn't recognize it
+        - '#Call to an undefined static method Illuminate\\Database\\Capsule\\Manager::instance\(\)#'
+        # $setupRoutes is defined in routes/middleware.php via require
+        - '#Variable \$setupRoutes might not be defined#'

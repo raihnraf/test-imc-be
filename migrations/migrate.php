@@ -30,6 +30,8 @@ $migrations = [
     __DIR__ . '/003_create_pages_table.php',
     __DIR__ . '/004_create_level_permissions_table.php',
     __DIR__ . '/005_create_user_permissions_table.php',
+    __DIR__ . '/006_add_deleted_at_to_levels.php',
+    __DIR__ . '/007_create_login_attempts_table.php',
 ];
 
 $count = 0;

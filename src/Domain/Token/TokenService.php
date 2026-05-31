@@ -23,15 +23,17 @@ class TokenService
         $this->expiry = (int) ($settings['expiry'] ?? 3600);
     }
 
-    public function generateToken(array $userData): string
+    public function generateToken(array $userData, ?int $expiry = null): string
     {
         $now = time();
+        $effectiveExpiry = $expiry ?? $this->expiry;
 
         $payload = [
             'iss' => 'imc-be',
             'sub' => $userData['user_id'],
             'iat' => $now,
-            'exp' => $now + $this->expiry,
+            'exp' => $now + $effectiveExpiry,
+            'jti' => bin2hex(random_bytes(16)),
             'data' => [
                 'user_id' => $userData['user_id'],
                 'level_id' => $userData['level_id'],
@@ -40,6 +42,13 @@ class TokenService
         ];
 
         return JWT::encode($payload, $this->secret, $this->algorithm);
+    }
+
+    public function generateRefreshToken(): array
+    {
+        $rawToken = bin2hex(random_bytes(32));
+        $hash = hash('sha256', $rawToken);
+        return ['raw_token' => $rawToken, 'hash' => $hash];
     }
 
     public function validateToken(string $token): array

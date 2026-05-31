@@ -23,5 +23,7 @@ return [
         'secret' => $_ENV['JWT_SECRET'] ?? '',
         'algorithm' => $_ENV['JWT_ALGORITHM'] ?? 'HS256',
         'expiry' => (int) ($_ENV['JWT_EXPIRY'] ?? 3600),
+        'access_token_expiry' => (int) ($_ENV['JWT_ACCESS_TOKEN_EXPIRY'] ?? 900),
+        'refresh_token_expiry' => (int) ($_ENV['JWT_REFRESH_TOKEN_EXPIRY'] ?? 604800),
     ],
 ];

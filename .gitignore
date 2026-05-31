@@ -1,7 +1,46 @@
+# Dependencies
 vendor/
+
+# Environment
 .env
-logs/
-*.log
+.env.local
+.env.*.local
+
+# AI CLI tool directories (private, not for contributors)
+.claude/
+.cursor/
+.opencode/
+.commandcode/
+.agents/
+.github/copilot-instructions.md
+
+# Planning directory (internal workflow artifacts)
+.planning/
+
+# Test artifacts
 .phpunit.result.cache
 .phpunit.cache/
+coverage/
+.phpunit.result.cache
+
+# Logs
+logs/
+*.log
+
+# Docker
 docker/pgdata/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Audit and planning docs (internal only)
+audit.md
+original.md

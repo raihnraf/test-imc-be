@@ -25,7 +25,7 @@ class HttpErrorHandler extends SlimErrorHandler
         $renderer = new JsonErrorRenderer();
         $body = $renderer($this->exception, $this->displayErrorDetails);
 
-        $response->getBody()->write($body !== false ? $body : '');
+        $response->getBody()->write($body);
         return $response->withHeader('Content-Type', 'application/json');
     }
 

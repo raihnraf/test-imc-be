@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Imc\Domain\Page;
 
+use Illuminate\Database\Query\Builder;
+
 interface PageRepositoryInterface
 {
     public function findById(int $id): ?Page;
-    public function findAll(array $filters = []): array;
+    public function findAll(array $filters = []): Builder;
     public function create(array $data): Page;
     public function update(int $id, array $data): Page;
     public function delete(int $id): bool;

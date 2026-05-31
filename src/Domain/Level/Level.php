@@ -13,5 +13,6 @@ class Level
         public bool $isActive = true,
         public ?string $createdAt = null,
         public ?string $updatedAt = null,
+        public ?string $deletedAt = null,
     ) {}
 }
