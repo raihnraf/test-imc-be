@@ -6,10 +6,10 @@ namespace Imc\Domain\User;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Query\Builder;
+use Imc\Domain\Shared\PaginatedResult;
 
 class UserRepository implements UserRepositoryInterface
 {
-
     public function findById(int $id): ?User
     {
         $row = Capsule::table('users')->where('id', $id)->first();
@@ -26,7 +26,30 @@ class UserRepository implements UserRepositoryInterface
         return $row ? $this->mapToEntity((array) $row) : null;
     }
 
-    public function findAll(array $filters = []): Builder
+    public function count(array $filters = []): int
+    {
+        return $this->buildFilteredQuery($filters)->count();
+    }
+
+    public function findPaginated(array $filters = [], int $page = 1, int $perPage = 15): PaginatedResult
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min($perPage, 100));
+        $query = $this->buildFilteredQuery($filters);
+        $total = $query->count();
+        $rows = $total > 0
+            ? (clone $query)->forPage($page, $perPage)->get()
+            : collect();
+
+        return new PaginatedResult(
+            $rows->map(fn ($row) => $this->mapToEntity((array) $row))->all(),
+            $page,
+            $perPage,
+            $total,
+        );
+    }
+
+    private function buildFilteredQuery(array $filters = []): Builder
     {
         $query = Capsule::table('users');
 
@@ -53,7 +76,7 @@ class UserRepository implements UserRepositoryInterface
     public function create(array $data): User
     {
         $id = Capsule::table('users')->insertGetId([
-            'nama_lengkap' => $data['nama_lengkap'],
+            'nama_lengkap' => $data['full_name'],
             'username' => $data['username'],
             'email' => $data['email'],
             'password' => password_hash($data['password'], PASSWORD_ARGON2ID),
@@ -70,8 +93,8 @@ class UserRepository implements UserRepositoryInterface
     {
         $updateData = [];
 
-        if (array_key_exists('nama_lengkap', $data)) {
-            $updateData['nama_lengkap'] = $data['nama_lengkap'];
+        if (array_key_exists('full_name', $data)) {
+            $updateData['nama_lengkap'] = $data['full_name'];
         }
         if (array_key_exists('username', $data)) {
             $updateData['username'] = $data['username'];
@@ -126,7 +149,7 @@ class UserRepository implements UserRepositoryInterface
     {
         return new User(
             id: (int) $data['id'],
-            namaLengkap: $data['nama_lengkap'],
+            fullName: $data['nama_lengkap'],
             username: $data['username'],
             email: $data['email'],
             password: $data['password'],

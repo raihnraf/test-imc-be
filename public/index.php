@@ -6,6 +6,8 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 use Imc\Application\Handlers\HttpErrorHandler;
+use Imc\Application\Handlers\JsonErrorRenderer;
+use Imc\Application\Middleware\CorsMiddleware;
 
 // Load environment variables
 $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
@@ -19,6 +21,7 @@ Slim\Factory\AppFactory::setContainer($container);
 $app = Slim\Factory\AppFactory::create();
 
 // Middleware (LIFO: last added = first executed)
+$app->add(CorsMiddleware::class);
 $app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
 
@@ -29,6 +32,7 @@ $errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, true, true);
 
 // Set custom error handler for JSON responses
 $errorHandler = new HttpErrorHandler($app->getCallableResolver(), $app->getResponseFactory());
+$errorHandler->setErrorRenderer(new JsonErrorRenderer());
 $errorMiddleware->setDefaultErrorHandler($errorHandler);
 
 // Load routes and middleware

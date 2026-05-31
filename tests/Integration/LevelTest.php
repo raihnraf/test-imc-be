@@ -41,7 +41,7 @@ class LevelTest extends TestCase
         $body = $this->getJsonBody($response);
 
         $this->assertStatusCode(200, $response);
-        $this->assertNotNull($body['data']['nama_level']);
+        $this->assertNotNull($body['data']['name']);
         $this->assertArrayHasKey('id', $body['data']);
     }
 
@@ -54,14 +54,14 @@ class LevelTest extends TestCase
     public function testCreateLevel(): void
     {
         $response = $this->handle('POST', '/api/levels', [
-            'nama_level' => 'Test Level',
-            'deskripsi' => 'A test level',
+            'name' => 'Test Level',
+            'description' => 'A test level',
             'is_active' => true,
         ], $this->token);
         $body = $this->getJsonBody($response);
 
         $this->assertStatusCode(201, $response);
-        $this->assertEquals('Test Level', $body['data']['nama_level']);
+        $this->assertEquals('Test Level', $body['data']['name']);
         $this->assertArrayHasKey('id', $body['data']);
     }
 
@@ -77,18 +77,18 @@ class LevelTest extends TestCase
     public function testUpdateLevel(): void
     {
         $response = $this->handle('PUT', '/api/levels/1', [
-            'nama_level' => 'Super Admin Updated',
+            'name' => 'Super Admin Updated',
         ], $this->token);
         $body = $this->getJsonBody($response);
 
         $this->assertStatusCode(200, $response);
-        $this->assertEquals('Super Admin Updated', $body['data']['nama_level']);
+        $this->assertEquals('Super Admin Updated', $body['data']['name']);
     }
 
     public function testUpdateLevelNotFound(): void
     {
         $response = $this->handle('PUT', '/api/levels/99999', [
-            'nama_level' => 'Should fail',
+            'name' => 'Should fail',
         ], $this->token);
 
         $this->assertStatusCode(404, $response);
@@ -97,7 +97,7 @@ class LevelTest extends TestCase
     public function testDeleteLevel(): void
     {
         // Create a temp level to delete
-        $createResp = $this->handle('POST', '/api/levels', ['nama_level' => 'To Delete'], $this->token);
+        $createResp = $this->handle('POST', '/api/levels', ['name' => 'To Delete'], $this->token);
         $createBody = $this->getJsonBody($createResp);
         $levelId = $createBody['data']['id'];
 
@@ -112,7 +112,7 @@ class LevelTest extends TestCase
     public function testDeleteLevelAlreadyDeleted(): void
     {
         // Create and delete a level
-        $createResp = $this->handle('POST', '/api/levels', ['nama_level' => 'Double Delete'], $this->token);
+        $createResp = $this->handle('POST', '/api/levels', ['name' => 'Double Delete'], $this->token);
         $createBody = $this->getJsonBody($createResp);
         $levelId = $createBody['data']['id'];
 
@@ -138,12 +138,24 @@ class LevelTest extends TestCase
         $this->assertEquals('VALIDATION_ERROR', $body['error']['type']);
     }
 
-    public function testCreateLevelNamaLevelTooLong(): void
+    public function testCreateLevelNameTooLong(): void
     {
         $response = $this->handle('POST', '/api/levels', [
-            'nama_level' => str_repeat('a', 101),
+            'name' => str_repeat('a', 101),
         ], $this->token);
 
         $this->assertStatusCode(422, $response);
+    }
+
+    public function testDeleteLevelWithActiveUsersReturns409(): void
+    {
+        // Super Admin (level 1) has the admin user assigned and active
+        $response = $this->handle('DELETE', '/api/levels/1', null, $this->token);
+        $body = $this->getJsonBody($response);
+
+        $this->assertStatusCode(409, $response);
+        $this->assertEquals('RESOURCE_IN_USE', $body['error']['type']);
+        $this->assertStringContainsString('active user', $body['error']['description']);
+        $this->assertEquals('level_id', $body['error']['field']);
     }
 }

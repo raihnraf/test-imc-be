@@ -29,14 +29,19 @@ abstract class TestCase extends PHPUnitTestCase
         $_ENV['JWT_EXPIRY'] = $_ENV['JWT_EXPIRY'] ?: '3600';
         $_ENV['APP_ENV'] = $_ENV['APP_ENV'] ?: 'testing';
 
+        // Auto-detect: if DB_HOST explicitly set to non-local value (Docker), use it.
+        // Otherwise default to localhost.
+        $explicitHost = $_ENV['DB_HOST'] ?? null;
+        $resolvedHost = $explicitHost ?? 'localhost';
+
         if (self::$sharedCapsule === null) {
             $dbSettings = [
                 'driver' => 'pgsql',
-                'host' => getenv('DB_HOST') ?: 'localhost',
-                'port' => getenv('DB_PORT') ?: '5432',
-                'database' => getenv('DB_DATABASE') ?: 'imc',
-                'username' => getenv('DB_USERNAME') ?: 'postgres',
-                'password' => getenv('DB_PASSWORD') ?: 'postgres',
+                'host' => $resolvedHost,
+                'port' => $_ENV['DB_PORT'] ?? '5432',
+                'database' => $_ENV['DB_DATABASE'] ?? 'imc',
+                'username' => $_ENV['DB_USERNAME'] ?? 'postgres',
+                'password' => $_ENV['DB_PASSWORD'] ?? 'postgres',
                 'charset' => 'utf8',
                 'prefix' => '',
                 'schema' => 'public',
@@ -62,6 +67,8 @@ abstract class TestCase extends PHPUnitTestCase
                     ['nama_page' => 'Dashboard', 'route_path' => '/dashboard', 'deskripsi' => 'Main dashboard', 'urutan_tampil' => 1, 'is_active' => true, 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')],
                     ['nama_page' => 'User Management', 'route_path' => '/users', 'deskripsi' => 'Manage users', 'urutan_tampil' => 2, 'is_active' => true, 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')],
                     ['nama_page' => 'Level Management', 'route_path' => '/levels', 'deskripsi' => 'Manage levels', 'urutan_tampil' => 3, 'is_active' => true, 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')],
+                    ['nama_page' => 'Page Management', 'route_path' => '/pages', 'deskripsi' => 'Manage menu pages', 'urutan_tampil' => 4, 'is_active' => true, 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')],
+                    ['nama_page' => 'Permission Matrix', 'route_path' => '/permissions', 'deskripsi' => 'View permission matrix', 'urutan_tampil' => 5, 'is_active' => true, 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s')],
                 ]);
             }
 
@@ -100,6 +107,22 @@ abstract class TestCase extends PHPUnitTestCase
 
     protected function ensureBaselinePermissions(): void
     {
+        // Ensure essential pages exist for middleware pageMap
+        if (!Capsule::table('pages')->where('route_path', '/pages')->exists()) {
+            Capsule::table('pages')->insert([
+                'nama_page' => 'Page Management', 'route_path' => '/pages',
+                'deskripsi' => 'Manage menu pages', 'urutan_tampil' => 4, 'is_active' => true,
+                'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
+        if (!Capsule::table('pages')->where('route_path', '/permissions')->exists()) {
+            Capsule::table('pages')->insert([
+                'nama_page' => 'Permission Matrix', 'route_path' => '/permissions',
+                'deskripsi' => 'View permission matrix', 'urutan_tampil' => 5, 'is_active' => true,
+                'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
+
         // Ensure level 1 (Super Admin) has access to all pages
         $existing = Capsule::table('level_permissions')
             ->where('level_id', 1)
@@ -139,6 +162,7 @@ abstract class TestCase extends PHPUnitTestCase
             $this->app->getCallableResolver(),
             $this->app->getResponseFactory()
         );
+        $errorHandler->setErrorRenderer(new \Imc\Application\Handlers\JsonErrorRenderer());
         $errorMiddleware->setDefaultErrorHandler($errorHandler);
 
         require __DIR__ . '/../routes/routes.php';

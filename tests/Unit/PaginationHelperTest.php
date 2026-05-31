@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Imc\Tests\Unit;
 
 use Imc\Application\Helpers\PaginationHelper;
-use Illuminate\Database\Query\Builder;
+use Imc\Domain\Shared\PaginatedResult;
 use PHPUnit\Framework\TestCase;
 
 class PaginationHelperTest extends TestCase
 {
-    public function testPaginateReturnsCorrectStructure(): void
+    public function testFormatReturnsCorrectStructure(): void
     {
-        $mock = $this->createMockBuilder();
-        $result = PaginationHelper::paginate($mock->query, 1, 10);
+        $paginated = new PaginatedResult([['id' => 1]], 1, 10, 1);
+        $result = PaginationHelper::format([['id' => 1]], $paginated);
 
         $this->assertArrayHasKey('data', $result);
         $this->assertArrayHasKey('meta', $result);
@@ -23,68 +23,42 @@ class PaginationHelperTest extends TestCase
         $this->assertArrayHasKey('total_pages', $result['meta']);
     }
 
-    public function testPaginateWithDefaultParams(): void
+    public function testFormatWithCustomParams(): void
     {
-        $mock = $this->createMockBuilder();
-        $result = PaginationHelper::paginate($mock->query);
-
-        $this->assertEquals(1, $result['meta']['page']);
-        $this->assertEquals(15, $result['meta']['per_page']);
-    }
-
-    public function testPaginateWithCustomParams(): void
-    {
-        $mock = $this->createMockBuilder(47);
-        $result = PaginationHelper::paginate($mock->query, 2, 15);
+        $paginated = new PaginatedResult(array_fill(0, 10, 'item'), 2, 15, 47);
+        $result = PaginationHelper::format(array_fill(0, 10, 'item'), $paginated);
 
         $this->assertEquals(2, $result['meta']['page']);
         $this->assertEquals(15, $result['meta']['per_page']);
         $this->assertEquals(47, $result['meta']['total']);
     }
 
-    public function testPaginateClampsPageToMinimumOne(): void
+    public function testFormatWithEmptyResult(): void
     {
-        $mock = $this->createMockBuilder();
-        $result = PaginationHelper::paginate($mock->query, 0, 15);
-
-        $this->assertEquals(1, $result['meta']['page']);
-    }
-
-    public function testPaginateClampsPerPageToMaximum100(): void
-    {
-        $mock = $this->createMockBuilder();
-        $result = PaginationHelper::paginate($mock->query, 1, 200);
-
-        $this->assertEquals(100, $result['meta']['per_page']);
-    }
-
-    public function testPaginateWithEmptyResult(): void
-    {
-        $mock = $this->createMockBuilder(0);
-        $result = PaginationHelper::paginate($mock->query, 1, 10);
+        $paginated = new PaginatedResult([], 1, 10, 0);
+        $result = PaginationHelper::format([], $paginated);
 
         $this->assertEquals(0, $result['meta']['total']);
         $this->assertEquals(0, $result['meta']['total_pages']);
         $this->assertCount(0, $result['data']);
     }
 
-    public function testPaginateCalculatesTotalPagesCorrectly(): void
+    public function testFormatCalculatesTotalPagesCorrectly(): void
     {
-        $mock = $this->createMockBuilder(47);
-        $result = PaginationHelper::paginate($mock->query, 1, 15);
+        $paginated = new PaginatedResult(array_fill(0, 10, 'item'), 1, 15, 47);
+        $result = PaginationHelper::format(array_fill(0, 10, 'item'), $paginated);
 
-        // ceil(47/15) = 4
         $this->assertEquals(4, $result['meta']['total_pages']);
     }
 
-    private function createMockBuilder(int $total = 10): object
+    public function testFormatDelegatesMetadataToPaginatedResult(): void
     {
-        $mock = $this->createMock(Builder::class);
+        $paginated = new PaginatedResult(['item'], 1, 15, 10);
+        $result = PaginationHelper::format(['item'], $paginated);
 
-        $mock->method('count')->willReturn($total);
-        $mock->method('forPage')->willReturnSelf();
-        $mock->method('get')->willReturn(array_fill(0, min($total, 15), (object) ['id' => 1]));
-
-        return (object) ['query' => $mock];
+        $this->assertEquals($paginated->page, $result['meta']['page']);
+        $this->assertEquals($paginated->perPage, $result['meta']['per_page']);
+        $this->assertEquals($paginated->total, $result['meta']['total']);
+        $this->assertEquals($paginated->totalPages(), $result['meta']['total_pages']);
     }
 }

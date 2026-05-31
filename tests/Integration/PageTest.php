@@ -41,7 +41,7 @@ class PageTest extends TestCase
         $body = $this->getJsonBody($response);
 
         $this->assertStatusCode(200, $response);
-        $this->assertEquals('Dashboard', $body['data']['nama_page']);
+        $this->assertEquals('Dashboard', $body['data']['name']);
     }
 
     public function testGetPageNotFound(): void
@@ -53,28 +53,28 @@ class PageTest extends TestCase
     public function testCreatePage(): void
     {
         $response = $this->handle('POST', '/api/pages', [
-            'nama_page' => 'Test Page',
+            'name' => 'Test Page',
             'route_path' => '/test-page',
-            'deskripsi' => 'A test page',
-            'urutan_tampil' => 10,
+            'description' => 'A test page',
+            'display_order' => 10,
             'is_active' => true,
         ], $this->token);
         $body = $this->getJsonBody($response);
 
         $this->assertStatusCode(201, $response);
-        $this->assertEquals('Test Page', $body['data']['nama_page']);
+        $this->assertEquals('Test Page', $body['data']['name']);
         $this->assertEquals('/test-page', $body['data']['route_path']);
     }
 
     public function testCreatePageDuplicateRoute(): void
     {
         $this->handle('POST', '/api/pages', [
-            'nama_page' => 'First',
+            'name' => 'First',
             'route_path' => '/dup-route',
         ], $this->token);
 
         $response = $this->handle('POST', '/api/pages', [
-            'nama_page' => 'Second',
+            'name' => 'Second',
             'route_path' => '/dup-route',
         ], $this->token);
         $body = $this->getJsonBody($response);
@@ -96,7 +96,7 @@ class PageTest extends TestCase
     public function testCreatePageRoutePathNoLeadingSlash(): void
     {
         $response = $this->handle('POST', '/api/pages', [
-            'nama_page' => 'Bad Route',
+            'name' => 'Bad Route',
             'route_path' => 'no-slash',
         ], $this->token);
         $body = $this->getJsonBody($response);
@@ -108,25 +108,25 @@ class PageTest extends TestCase
     public function testUpdatePage(): void
     {
         $createResp = $this->handle('POST', '/api/pages', [
-            'nama_page' => 'To Update',
+            'name' => 'To Update',
             'route_path' => '/to-update',
         ], $this->token);
         $createBody = $this->getJsonBody($createResp);
         $pageId = $createBody['data']['id'];
 
         $response = $this->handle('PUT', "/api/pages/{$pageId}", [
-            'nama_page' => 'Updated Name',
+            'name' => 'Updated Name',
         ], $this->token);
         $body = $this->getJsonBody($response);
 
         $this->assertStatusCode(200, $response);
-        $this->assertEquals('Updated Name', $body['data']['nama_page']);
+        $this->assertEquals('Updated Name', $body['data']['name']);
     }
 
     public function testDeletePage(): void
     {
         $createResp = $this->handle('POST', '/api/pages', [
-            'nama_page' => 'Delete Me',
+            'name' => 'Delete Me',
             'route_path' => '/delete-me',
         ], $this->token);
         $createBody = $this->getJsonBody($createResp);
@@ -148,7 +148,7 @@ class PageTest extends TestCase
     public function testUpdatePageEmptyBody(): void
     {
         $createResp = $this->handle('POST', '/api/pages', [
-            'nama_page' => 'Empty Body Test',
+            'name' => 'Empty Body Test',
             'route_path' => '/empty-body',
         ], $this->token);
         $createBody = $this->getJsonBody($createResp);

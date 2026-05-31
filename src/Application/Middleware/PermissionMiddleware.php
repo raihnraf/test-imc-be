@@ -4,51 +4,40 @@ declare(strict_types=1);
 
 namespace Imc\Application\Middleware;
 
+use Imc\Domain\Page\PageRepositoryInterface;
 use Imc\Domain\Permission\PermissionRepositoryInterface;
+use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
-use Slim\Psr7\Factory\ResponseFactory;
 
 class PermissionMiddleware implements MiddlewareInterface
 {
-    private array $pageMap = [
-        '/levels' => '/levels',
-        '/users' => '/users',
-        '/pages' => '/dashboard',
-        '/permissions/matrix' => '/dashboard',
-    ];
-
     public function __construct(
         private readonly PermissionRepositoryInterface $permissionRepo,
-        private readonly ResponseFactory $responseFactory,
-    ) {}
+        private readonly PageRepositoryInterface $pageRepo,
+        private readonly ResponseFactoryInterface $responseFactory,
+    ) {
+    }
 
     public function process(Request $request, RequestHandler $handler): Response
     {
         $userId = (int) $request->getAttribute('user_id');
         $levelId = (int) $request->getAttribute('level_id');
 
-        $uriPath = $request->getUri()->getPath();
+        $apiPath = preg_replace('#^/api#', '', $request->getUri()->getPath());
 
-        // Strip /api prefix and map to page
-        $apiPath = preg_replace('#^/api#', '', $uriPath);
+        $segments = explode('/', trim($apiPath, '/'));
+        $basePath = '/' . ($segments[0] ?? '');
 
-        // Extract base path — match against /levels, /users, /pages, /permissions/matrix
-        $matchedPage = null;
-        foreach ($this->pageMap as $prefix => $page) {
-            if (str_starts_with($apiPath, $prefix)) {
-                $matchedPage = $page;
-                break;
-            }
-        }
+        $page = $this->pageRepo->findByRoute($basePath);
 
-        if ($matchedPage === null) {
+        if ($page === null || !$page->isActive) {
             return $handler->handle($request);
         }
 
-        if (!$this->permissionRepo->hasAccess($userId, $levelId, $matchedPage)) {
+        if (!$this->permissionRepo->hasAccess($userId, $levelId, $basePath)) {
             $response = $this->responseFactory->createResponse(403);
             $body = json_encode([
                 'statusCode' => 403,

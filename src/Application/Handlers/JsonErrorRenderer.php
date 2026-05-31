@@ -6,10 +6,11 @@ namespace Imc\Application\Handlers;
 
 use Imc\Domain\Exceptions\AuthenticationException;
 use Imc\Domain\Exceptions\AuthorizationException;
-use Imc\Domain\Exceptions\ValidationException;
-use Imc\Domain\Exceptions\NotFoundException;
-use Imc\Domain\Exceptions\DuplicateEntryException;
 use Imc\Domain\Exceptions\DomainException;
+use Imc\Domain\Exceptions\DuplicateEntryException;
+use Imc\Domain\Exceptions\NotFoundException;
+use Imc\Domain\Exceptions\ResourceInUseException;
+use Imc\Domain\Exceptions\ValidationException;
 use Slim\Exception\HttpSpecializedException;
 use Slim\Interfaces\ErrorRendererInterface;
 
@@ -28,7 +29,7 @@ class JsonErrorRenderer implements ErrorRendererInterface
             $type = 'INTERNAL_SERVER_ERROR';
         }
 
-        $description = $displayErrorDetails
+        $description = ($displayErrorDetails || $status < 500)
             ? $exception->getMessage()
             : 'An internal error occurred';
 
@@ -48,8 +49,12 @@ class JsonErrorRenderer implements ErrorRendererInterface
             $error['error']['field'] = $exception->getField();
         }
 
-        if ($displayErrorDetails) {
-            $error['error']['trace'] = $exception->getTraceAsString();
+        if ($exception instanceof ResourceInUseException) {
+            $error['error']['field'] = $exception->getField();
+        }
+
+        if ($displayErrorDetails && $status >= 500) {
+            error_log('[IMC] ' . $exception::class . ': ' . $exception->getMessage() . "\n" . $exception->getTraceAsString());
         }
 
         return json_encode($error, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -58,11 +63,12 @@ class JsonErrorRenderer implements ErrorRendererInterface
     private function mapExceptionType(\Throwable $exception): string
     {
         return match (true) {
-            $exception instanceof AuthenticationException => 'UNAUTHENTICATED',
+            $exception instanceof AuthenticationException => $exception->getErrorType(),
             $exception instanceof AuthorizationException => 'FORBIDDEN',
             $exception instanceof ValidationException => 'VALIDATION_ERROR',
             $exception instanceof NotFoundException => 'NOT_FOUND',
             $exception instanceof DuplicateEntryException => 'DUPLICATE_ENTRY',
+            $exception instanceof ResourceInUseException => 'RESOURCE_IN_USE',
             default => 'INTERNAL_SERVER_ERROR',
         };
     }

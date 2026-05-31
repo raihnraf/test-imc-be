@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Imc\Tests\Unit\Domain;
 
+use Illuminate\Database\Capsule\Manager as Capsule;
 use Imc\Domain\Permission\PermissionRepository;
 use Imc\Tests\TestCase;
-use Illuminate\Database\Capsule\Manager as Capsule;
 
 class PermissionResolutionTest extends TestCase
 {

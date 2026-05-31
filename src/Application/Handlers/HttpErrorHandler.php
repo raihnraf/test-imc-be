@@ -10,6 +10,13 @@ use Slim\Handlers\ErrorHandler as SlimErrorHandler;
 
 class HttpErrorHandler extends SlimErrorHandler
 {
+    private JsonErrorRenderer $errorRenderer;
+
+    public function setErrorRenderer(JsonErrorRenderer $renderer): void
+    {
+        $this->errorRenderer = $renderer;
+    }
+
     protected function respond(): ResponseInterface
     {
         $statusCode = 500;
@@ -22,8 +29,7 @@ class HttpErrorHandler extends SlimErrorHandler
 
         $response = $this->responseFactory->createResponse($statusCode);
 
-        $renderer = new JsonErrorRenderer();
-        $body = $renderer($this->exception, $this->displayErrorDetails);
+        $body = $this->errorRenderer->__invoke($this->exception, $this->displayErrorDetails);
 
         $response->getBody()->write($body);
         return $response->withHeader('Content-Type', 'application/json');

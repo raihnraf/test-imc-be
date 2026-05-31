@@ -8,7 +8,7 @@ class User
 {
     public function __construct(
         public ?int $id = null,
-        public string $namaLengkap = '',
+        public string $fullName = '',
         public string $username = '',
         public string $email = '',
         public string $password = '',
@@ -16,5 +16,20 @@ class User
         public bool $isActive = true,
         public ?string $createdAt = null,
         public ?string $updatedAt = null,
-    ) {}
+    ) {
+    }
+
+    public function toApiResponse(): array
+    {
+        return [
+            'id' => $this->id,
+            'full_name' => $this->fullName,
+            'username' => $this->username,
+            'email' => $this->email,
+            'level_id' => $this->levelId,
+            'is_active' => $this->isActive,
+            'created_at' => $this->createdAt,
+            'updated_at' => $this->updatedAt,
+        ];
+    }
 }

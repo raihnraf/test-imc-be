@@ -32,6 +32,14 @@ class RefreshTokenRepository implements RefreshTokenRepositoryInterface
         return $affected > 0;
     }
 
+    public function rotateToken(int $oldTokenId, int $userId, string $newTokenHash, \DateTimeInterface $expiresAt): void
+    {
+        Capsule::connection()->transaction(function () use ($oldTokenId, $userId, $newTokenHash, $expiresAt) {
+            $this->store($userId, $newTokenHash, $expiresAt);
+            $this->revoke($oldTokenId);
+        });
+    }
+
     public function cleanupExpired(): void
     {
         Capsule::table('refresh_tokens')

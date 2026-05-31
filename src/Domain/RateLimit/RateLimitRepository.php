@@ -11,7 +11,10 @@ class RateLimitRepository implements RateLimitRepositoryInterface
 {
     public function isRateLimited(string $ipAddress, int $maxAttempts = 5, int $windowSeconds = 60): bool
     {
-        $this->cleanupOldRecords();
+        // Probability-based cleanup: only run ~1% of the time to avoid overhead
+        if (random_int(1, 100) === 1) {
+            $this->cleanupOldRecords();
+        }
 
         $count = Capsule::table('login_attempts')
             ->where('ip_address', $ipAddress)

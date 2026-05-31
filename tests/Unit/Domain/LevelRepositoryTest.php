@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Imc\Tests\Unit\Domain;
 
+use Illuminate\Database\Capsule\Manager as Capsule;
 use Imc\Domain\Level\LevelRepository;
 use Imc\Domain\Level\LevelRepositoryInterface;
 use Imc\Tests\TestCase;
-use Illuminate\Database\Capsule\Manager as Capsule;
 
 class LevelRepositoryTest extends TestCase
 {
@@ -24,7 +24,7 @@ class LevelRepositoryTest extends TestCase
         $level = $this->repository->findById(1);
 
         $this->assertNotNull($level);
-        $this->assertNotNull($level->namaLevel);
+        $this->assertNotNull($level->name);
     }
 
     public function testFindByIdNotFound(): void
@@ -33,53 +33,78 @@ class LevelRepositoryTest extends TestCase
         $this->assertNull($level);
     }
 
-    public function testFindAll(): void
+    public function testFindPaginatedReturnsPaginatedResult(): void
     {
-        $builder = $this->repository->findAll([]);
-        $this->assertInstanceOf(\Illuminate\Database\Query\Builder::class, $builder);
+        $result = $this->repository->findPaginated([], 1, 10);
 
-        $results = $builder->get();
-        $this->assertGreaterThan(0, count($results));
+        $this->assertIsArray($result->items);
+        $this->assertGreaterThan(0, $result->total);
+        $this->assertEquals(1, $result->page);
+        $this->assertEquals(10, $result->perPage);
+        $this->assertInstanceOf(\Imc\Domain\Level\Level::class, $result->items[0]);
     }
 
-    public function testFindAllWithSearch(): void
+    public function testFindPaginatedWithSearch(): void
     {
-        $builder = $this->repository->findAll(['search' => 'Super']);
-        $results = $builder->get();
+        $result = $this->repository->findPaginated(['search' => 'Super'], 1, 10);
 
-        $this->assertGreaterThan(0, count($results));
-    }
-
-    public function testFindAllWithIsActive(): void
-    {
-        $builder = $this->repository->findAll(['is_active' => '1']);
-        $results = $builder->get();
-
-        foreach ($results as $row) {
-            $this->assertTrue((bool) $row->is_active);
+        $this->assertGreaterThan(0, $result->total);
+        foreach ($result->items as $level) {
+            $this->assertInstanceOf(\Imc\Domain\Level\Level::class, $level);
         }
+    }
+
+    public function testFindPaginatedWithIsActive(): void
+    {
+        $result = $this->repository->findPaginated(['is_active' => '1'], 1, 10);
+
+        foreach ($result->items as $level) {
+            $this->assertTrue($level->isActive);
+        }
+    }
+
+    public function testFindPaginatedClampsPageAndPerPage(): void
+    {
+        $result = $this->repository->findPaginated([], 0, 200);
+
+        $this->assertEquals(1, $result->page);
+        $this->assertEquals(100, $result->perPage);
+    }
+
+    public function testFindPaginatedEmptyResult(): void
+    {
+        $result = $this->repository->findPaginated(['search' => 'nonexistent_xyz'], 1, 10);
+
+        $this->assertEquals(0, $result->total);
+        $this->assertCount(0, $result->items);
+    }
+
+    public function testCount(): void
+    {
+        $count = $this->repository->count([]);
+        $this->assertGreaterThan(0, $count);
     }
 
     public function testCreate(): void
     {
-        $level = $this->repository->create(['nama_level' => 'Unit Test Level']);
+        $level = $this->repository->create(['name' => 'Unit Test Level']);
 
         $this->assertNotNull($level->id);
-        $this->assertEquals('Unit Test Level', $level->namaLevel);
+        $this->assertEquals('Unit Test Level', $level->name);
         $this->assertTrue($level->isActive);
     }
 
     public function testUpdate(): void
     {
-        $level = $this->repository->create(['nama_level' => 'Before Update']);
-        $updated = $this->repository->update($level->id, ['nama_level' => 'After Update']);
+        $level = $this->repository->create(['name' => 'Before Update']);
+        $updated = $this->repository->update($level->id, ['name' => 'After Update']);
 
-        $this->assertEquals('After Update', $updated->namaLevel);
+        $this->assertEquals('After Update', $updated->name);
     }
 
     public function testDeleteSuccess(): void
     {
-        $level = $this->repository->create(['nama_level' => 'To Delete']);
+        $level = $this->repository->create(['name' => 'To Delete']);
         $result = $this->repository->delete($level->id);
 
         $this->assertTrue($result);
@@ -87,28 +112,26 @@ class LevelRepositoryTest extends TestCase
 
     public function testDeleteSetsDeletedAt(): void
     {
-        $level = $this->repository->create(['nama_level' => 'Soft Del']);
+        $level = $this->repository->create(['name' => 'Soft Del']);
         $this->repository->delete($level->id);
 
         $row = Capsule::table('levels')->where('id', $level->id)->first();
         $this->assertNotNull($row->deleted_at);
     }
 
-    public function testSoftDeletedNotInFindAll(): void
+    public function testSoftDeletedNotInFindPaginated(): void
     {
-        $level = $this->repository->create(['nama_level' => 'Hide Me']);
+        $level = $this->repository->create(['name' => 'Hide Me']);
         $this->repository->delete($level->id);
 
-        $builder = $this->repository->findAll([]);
-        $results = $builder->get();
-
-        $ids = $results->pluck('id')->toArray();
+        $result = $this->repository->findPaginated([], 1, 100);
+        $ids = array_map(fn ($l) => $l->id, $result->items);
         $this->assertNotContains($level->id, $ids);
     }
 
     public function testSoftDeletedNotInFindById(): void
     {
-        $level = $this->repository->create(['nama_level' => 'Gone']);
+        $level = $this->repository->create(['name' => 'Gone']);
         $this->repository->delete($level->id);
 
         $found = $this->repository->findById($level->id);

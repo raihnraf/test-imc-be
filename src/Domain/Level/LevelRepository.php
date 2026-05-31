@@ -6,10 +6,10 @@ namespace Imc\Domain\Level;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Query\Builder;
+use Imc\Domain\Shared\PaginatedResult;
 
 class LevelRepository implements LevelRepositoryInterface
 {
-
     public function findById(int $id): ?Level
     {
         $row = Capsule::table('levels')
@@ -20,7 +20,51 @@ class LevelRepository implements LevelRepositoryInterface
         return $row ? $this->mapToEntity((array) $row) : null;
     }
 
-    public function findAll(array $filters = []): Builder
+    public function count(array $filters = []): int
+    {
+        return $this->buildFilteredQuery($filters)->count();
+    }
+
+    public function existsByNama(string $namaLevel, ?int $excludeId = null): bool
+    {
+        $query = Capsule::table('levels')
+            ->where('nama_level', $namaLevel)
+            ->whereNull('deleted_at');
+
+        if ($excludeId !== null) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        return $query->exists();
+    }
+
+    public function countActiveUsers(int $levelId): int
+    {
+        return (int) Capsule::table('users')
+            ->where('level_id', $levelId)
+            ->where('is_active', true)
+            ->count();
+    }
+
+    public function findPaginated(array $filters = [], int $page = 1, int $perPage = 15): PaginatedResult
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min($perPage, 100));
+        $query = $this->buildFilteredQuery($filters);
+        $total = $query->count();
+        $rows = $total > 0
+            ? (clone $query)->forPage($page, $perPage)->get()
+            : collect();
+
+        return new PaginatedResult(
+            $rows->map(fn ($row) => $this->mapToEntity((array) $row))->all(),
+            $page,
+            $perPage,
+            $total,
+        );
+    }
+
+    private function buildFilteredQuery(array $filters = []): Builder
     {
         $query = Capsule::table('levels')->whereNull('deleted_at');
 
@@ -42,8 +86,8 @@ class LevelRepository implements LevelRepositoryInterface
     public function create(array $data): Level
     {
         $id = Capsule::table('levels')->insertGetId([
-            'nama_level' => $data['nama_level'],
-            'deskripsi' => $data['deskripsi'] ?? null,
+            'nama_level' => $data['name'],
+            'deskripsi' => $data['description'] ?? null,
             'is_active' => $data['is_active'] ?? true,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
@@ -55,11 +99,11 @@ class LevelRepository implements LevelRepositoryInterface
     public function update(int $id, array $data): Level
     {
         $updateData = [];
-        if (array_key_exists('nama_level', $data)) {
-            $updateData['nama_level'] = $data['nama_level'];
+        if (array_key_exists('name', $data)) {
+            $updateData['nama_level'] = $data['name'];
         }
-        if (array_key_exists('deskripsi', $data)) {
-            $updateData['deskripsi'] = $data['deskripsi'];
+        if (array_key_exists('description', $data)) {
+            $updateData['deskripsi'] = $data['description'];
         }
         if (array_key_exists('is_active', $data)) {
             $updateData['is_active'] = $data['is_active'];
@@ -88,8 +132,8 @@ class LevelRepository implements LevelRepositoryInterface
     {
         return new Level(
             id: (int) $data['id'],
-            namaLevel: $data['nama_level'],
-            deskripsi: $data['deskripsi'] ?? null,
+            name: $data['nama_level'],
+            description: $data['deskripsi'] ?? null,
             isActive: (bool) $data['is_active'],
             createdAt: $data['created_at'] ?? null,
             updatedAt: $data['updated_at'] ?? null,

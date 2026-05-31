@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Imc\Domain\Level;
 
-use Illuminate\Database\Query\Builder;
+use Imc\Domain\Shared\PaginatedResult;
 
 interface LevelRepositoryInterface
 {
     public function findById(int $id): ?Level;
-    public function findAll(array $filters = []): Builder;
+    public function count(array $filters = []): int;
+    public function findPaginated(array $filters = [], int $page = 1, int $perPage = 15): PaginatedResult;
+    public function existsByNama(string $namaLevel, ?int $excludeId = null): bool;
+    public function countActiveUsers(int $levelId): int;
     public function create(array $data): Level;
     public function update(int $id, array $data): Level;
     public function delete(int $id): bool;

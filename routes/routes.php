@@ -2,9 +2,6 @@
 
 declare(strict_types=1);
 
-use Psr\Http\Message\ResponseInterface as Response;
-use Psr\Http\Message\ServerRequestInterface as Request;
-use Slim\Routing\RouteCollectorProxy as Group;
 use Imc\Application\Actions\Auth\LoginAction;
 use Imc\Application\Actions\Auth\RefreshTokenAction;
 use Imc\Application\Actions\Level\LevelAction;
@@ -16,6 +13,9 @@ use Imc\Application\Actions\User\UserAction;
 use Imc\Application\Middleware\JwtMiddleware;
 use Imc\Application\Middleware\PermissionMiddleware;
 use Imc\Application\Middleware\RateLimitMiddleware;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Routing\RouteCollectorProxy as Group;
 
 $setupRoutes = function (Slim\App $app): void {
     // Health check

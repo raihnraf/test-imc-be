@@ -40,32 +40,43 @@ class RateLimitTest extends TestCase
         $this->assertEquals('RATE_LIMITED', $body['error']['type']);
     }
 
-    public function testRateLimitCountsSuccessfulLogins(): void
+    public function testSuccessfulLoginDoesNotCountTowardRateLimit(): void
     {
-        // First attempt: successful login
+        // Successful login — should NOT count toward rate limit
         $response = $this->handleWithIp('POST', '/auth/login', self::TEST_IP, [
             'username' => 'admin',
             'password' => 'admin123',
         ]);
-
         $this->assertStatusCode(200, $response);
 
-        // 4 more failed attempts (total now = 5)
+        // 4 failed attempts (total failed: 4)
         for ($i = 0; $i < 4; $i++) {
             $response = $this->handleWithIp('POST', '/auth/login', self::TEST_IP, [
                 'username' => 'wrong',
                 'password' => 'wrong',
             ]);
-
             $this->assertNotEquals(429, $response->getStatusCode());
         }
 
-        // 6th attempt should be rate limited
+        // Another successful login still works (successes don't count toward limit)
         $response = $this->handleWithIp('POST', '/auth/login', self::TEST_IP, [
             'username' => 'admin',
             'password' => 'admin123',
         ]);
+        $this->assertStatusCode(200, $response);
 
+        // 5th failed attempt (total failed: 5) — still within limit
+        $response = $this->handleWithIp('POST', '/auth/login', self::TEST_IP, [
+            'username' => 'wrong',
+            'password' => 'wrong',
+        ]);
+        $this->assertNotEquals(429, $response->getStatusCode());
+
+        // 6th attempt from same IP — should be rate limited
+        $response = $this->handleWithIp('POST', '/auth/login', self::TEST_IP, [
+            'username' => 'wrong',
+            'password' => 'wrong',
+        ]);
         $this->assertStatusCode(429, $response);
     }
 

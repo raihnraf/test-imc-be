@@ -11,14 +11,14 @@ class PermissionRepository implements PermissionRepositoryInterface
     public function hasAccess(int $userId, int $levelId, string $pagePath): bool
     {
         $row = Capsule::table('pages as p')
-            ->selectRaw("
+            ->selectRaw('
                 CASE
                     WHEN up.is_granted = false THEN false
                     WHEN up.is_granted = true THEN true
                     WHEN lp.page_id IS NOT NULL THEN true
                     ELSE false
                 END AS has_access
-            ")
+            ')
             ->leftJoin('level_permissions as lp', function ($join) use ($levelId) {
                 $join->on('lp.page_id', '=', 'p.id')
                      ->where('lp.level_id', '=', $levelId);
@@ -53,7 +53,7 @@ class PermissionRepository implements PermissionRepositoryInterface
 
         return $rows->map(fn ($row) => [
             'id' => (int) $row->id,
-            'nama_page' => $row->nama_page,
+            'name' => $row->nama_page,
             'route_path' => $row->route_path,
             'has_access' => (bool) $row->has_access,
         ])->toArray();
@@ -99,14 +99,14 @@ class PermissionRepository implements PermissionRepositoryInterface
     {
         $rows = Capsule::table('pages as p')
             ->select('p.id', 'p.nama_page', 'p.route_path')
-            ->selectRaw("
+            ->selectRaw('
                 CASE
                     WHEN up.is_granted = false THEN false
                     WHEN up.is_granted = true THEN true
                     WHEN lp.page_id IS NOT NULL THEN true
                     ELSE false
                 END AS has_access
-            ")
+            ')
             ->leftJoin('level_permissions as lp', function ($join) use ($levelId) {
                 $join->on('lp.page_id', '=', 'p.id')
                      ->where('lp.level_id', '=', $levelId);
@@ -121,7 +121,7 @@ class PermissionRepository implements PermissionRepositoryInterface
 
         return $rows->map(fn ($row) => [
             'id' => (int) $row->id,
-            'nama_page' => $row->nama_page,
+            'name' => $row->nama_page,
             'route_path' => $row->route_path,
             'has_access' => (bool) $row->has_access,
         ])->toArray();
@@ -137,7 +137,7 @@ class PermissionRepository implements PermissionRepositoryInterface
 
         return $rows->map(fn ($row) => [
             'id' => (int) $row->id,
-            'nama_page' => $row->nama_page,
+            'name' => $row->nama_page,
             'route_path' => $row->route_path,
         ])->toArray();
     }

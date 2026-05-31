@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Imc\Domain\Token;
 
+use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
-use Firebase\JWT\ExpiredException;
 use Firebase\JWT\SignatureInvalidException;
 use Imc\Domain\Exceptions\AuthenticationException;
 
@@ -57,11 +57,11 @@ class TokenService
             $decoded = JWT::decode($token, new Key($this->secret, $this->algorithm));
             return (array) $decoded->data;
         } catch (ExpiredException) {
-            throw new AuthenticationException('Token has expired', 401);
+            throw new AuthenticationException('Token has expired', 'TOKEN_EXPIRED');
         } catch (SignatureInvalidException) {
-            throw new AuthenticationException('Invalid token signature', 401);
+            throw new AuthenticationException('Invalid token signature', 'INVALID_TOKEN');
         } catch (\Exception) {
-            throw new AuthenticationException('Invalid token', 401);
+            throw new AuthenticationException('Invalid token', 'INVALID_TOKEN');
         }
     }
 }

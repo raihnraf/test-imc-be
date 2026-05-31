@@ -4,17 +4,21 @@ declare(strict_types=1);
 
 namespace Imc\Application\Middleware;
 
-use Imc\Domain\Token\TokenService;
 use Imc\Domain\Exceptions\AuthenticationException;
+use Imc\Domain\Token\TokenService;
+use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
-use Slim\Psr7\Factory\ResponseFactory;
 
 class JwtMiddleware implements MiddlewareInterface
 {
-    public function __construct(private TokenService $tokenService) {}
+    public function __construct(
+        private TokenService $tokenService,
+        private ResponseFactoryInterface $responseFactory,
+    ) {
+    }
 
     public function process(Request $request, RequestHandler $handler): Response
     {
@@ -42,8 +46,7 @@ class JwtMiddleware implements MiddlewareInterface
 
     private function errorResponse(int $status, string $type, string $description): Response
     {
-        $factory = new ResponseFactory();
-        $response = $factory->createResponse($status);
+        $response = $this->responseFactory->createResponse($status);
 
         $body = json_encode([
             'statusCode' => $status,

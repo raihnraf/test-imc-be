@@ -24,7 +24,7 @@ class PageRepositoryTest extends TestCase
     {
         $page = $this->repository->findById(1);
         $this->assertNotNull($page);
-        $this->assertNotNull($page->namaPage);
+        $this->assertNotNull($page->name);
     }
 
     public function testFindByRoute(): void
@@ -39,80 +39,96 @@ class PageRepositoryTest extends TestCase
         $this->assertNull($page);
     }
 
-    public function testFindAll(): void
+    public function testFindPaginatedReturnsPaginatedResult(): void
     {
-        $builder = $this->repository->findAll([]);
-        $this->assertInstanceOf(\Illuminate\Database\Query\Builder::class, $builder);
+        $result = $this->repository->findPaginated([], 1, 10);
 
-        $results = $builder->get();
-        $this->assertGreaterThan(0, count($results));
+        $this->assertIsArray($result->items);
+        $this->assertGreaterThan(0, $result->total);
+        $this->assertEquals(1, $result->page);
+        $this->assertEquals(10, $result->perPage);
+        $this->assertInstanceOf(\Imc\Domain\Page\Page::class, $result->items[0]);
     }
 
-    public function testFindAllOrderedByUrutanTampil(): void
+    public function testFindPaginatedOrderedByDisplayOrder(): void
     {
-        $this->repository->create(['nama_page' => 'Last', 'route_path' => "/last-{$this->suffix}", 'urutan_tampil' => 999]);
-        $this->repository->create(['nama_page' => 'First', 'route_path' => "/first-{$this->suffix}", 'urutan_tampil' => 1]);
+        $this->repository->create(['name' => 'Last', 'route_path' => "/last-{$this->suffix}", 'display_order' => 999]);
+        $this->repository->create(['name' => 'First', 'route_path' => "/first-{$this->suffix}", 'display_order' => 1]);
 
-        $builder = $this->repository->findAll([]);
-        $results = $builder->get();
+        $result = $this->repository->findPaginated([], 1, 100);
 
-        $firstOrder = (int) $results->first()->urutan_tampil;
-        $lastOrder = (int) $results->last()->urutan_tampil;
+        $firstOrder = $result->items[0]->displayOrder;
+        $lastOrder = $result->items[count($result->items) - 1]->displayOrder;
         $this->assertLessThanOrEqual($lastOrder, $firstOrder);
     }
 
-    public function testFindAllWithSearch(): void
+    public function testFindPaginatedWithSearch(): void
     {
-        $builder = $this->repository->findAll(['search' => 'Dashboard']);
-        $results = $builder->get();
+        $result = $this->repository->findPaginated(['search' => 'Dashboard'], 1, 10);
 
-        $this->assertGreaterThan(0, count($results));
+        $this->assertGreaterThan(0, $result->total);
+        foreach ($result->items as $page) {
+            $this->assertInstanceOf(\Imc\Domain\Page\Page::class, $page);
+        }
     }
 
-    public function testFindAllWithIsActive(): void
+    public function testFindPaginatedWithIsActive(): void
     {
         $this->repository->create([
-            'nama_page' => 'Inactive Page',
+            'name' => 'Inactive Page',
             'route_path' => "/inactive-{$this->suffix}",
             'is_active' => false,
         ]);
 
-        $builder = $this->repository->findAll(['is_active' => '0']);
-        $results = $builder->get();
+        $result = $this->repository->findPaginated(['is_active' => '0'], 1, 100);
 
-        $this->assertGreaterThan(0, count($results));
-        foreach ($results as $row) {
-            $this->assertFalse((bool) $row->is_active);
+        $this->assertGreaterThan(0, $result->total);
+        foreach ($result->items as $page) {
+            $this->assertFalse($page->isActive);
         }
+    }
+
+    public function testFindPaginatedClampsPageAndPerPage(): void
+    {
+        $result = $this->repository->findPaginated([], 0, 200);
+
+        $this->assertEquals(1, $result->page);
+        $this->assertEquals(100, $result->perPage);
+    }
+
+    public function testCount(): void
+    {
+        $count = $this->repository->count([]);
+        $this->assertGreaterThan(0, $count);
     }
 
     public function testCreate(): void
     {
         $page = $this->repository->create([
-            'nama_page' => 'Unit Test',
+            'name' => 'Unit Test',
             'route_path' => "/unit-{$this->suffix}",
         ]);
 
         $this->assertNotNull($page->id);
-        $this->assertEquals('Unit Test', $page->namaPage);
+        $this->assertEquals('Unit Test', $page->name);
         $this->assertTrue($page->isActive);
     }
 
     public function testUpdate(): void
     {
         $page = $this->repository->create([
-            'nama_page' => 'Before',
+            'name' => 'Before',
             'route_path' => "/before-{$this->suffix}",
         ]);
 
-        $updated = $this->repository->update($page->id, ['nama_page' => 'After']);
-        $this->assertEquals('After', $updated->namaPage);
+        $updated = $this->repository->update($page->id, ['name' => 'After']);
+        $this->assertEquals('After', $updated->name);
     }
 
     public function testDelete(): void
     {
         $page = $this->repository->create([
-            'nama_page' => 'Delete Me',
+            'name' => 'Delete Me',
             'route_path' => "/delete-{$this->suffix}",
         ]);
 
@@ -134,7 +150,7 @@ class PageRepositoryTest extends TestCase
     public function testExistsByRouteWithExcludeId(): void
     {
         $page = $this->repository->create([
-            'nama_page' => 'Excluded',
+            'name' => 'Excluded',
             'route_path' => "/excl-{$this->suffix}",
         ]);
 

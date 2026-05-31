@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Imc\Application\Middleware;
 
 use Imc\Domain\RateLimit\RateLimitRepositoryInterface;
+use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
-use Psr\Http\Message\ResponseFactoryInterface;
 
 class RateLimitMiddleware implements MiddlewareInterface
 {
@@ -18,7 +18,8 @@ class RateLimitMiddleware implements MiddlewareInterface
         private readonly ResponseFactoryInterface $responseFactory,
         private readonly int $maxAttempts = 5,
         private readonly int $windowSeconds = 60,
-    ) {}
+    ) {
+    }
 
     public function process(Request $request, RequestHandler $handler): Response
     {
@@ -40,8 +41,6 @@ class RateLimitMiddleware implements MiddlewareInterface
         }
 
         $response = $handler->handle($request);
-
-        $this->rateLimitRepo->recordAttempt($clientIp);
 
         return $response;
     }

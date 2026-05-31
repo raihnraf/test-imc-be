@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Imc\Application\Actions\Auth;
 
 use Imc\Application\Actions\BaseAction;
+use Imc\Domain\Exceptions\AuthenticationException;
+use Imc\Domain\RateLimit\RateLimitRepositoryInterface;
 use Imc\Domain\RefreshToken\RefreshTokenRepositoryInterface;
-use Imc\Domain\User\UserRepositoryInterface;
 use Imc\Domain\Token\TokenService;
-use Imc\Domain\Exceptions\ValidationException;
+use Imc\Domain\User\UserRepositoryInterface;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
@@ -18,8 +19,10 @@ class LoginAction extends BaseAction
         private UserRepositoryInterface $userRepository,
         private TokenService $tokenService,
         private RefreshTokenRepositoryInterface $refreshTokenRepo,
+        private RateLimitRepositoryInterface $rateLimitRepo,
         private array $settings,
-    ) {}
+    ) {
+    }
 
     public function __invoke(Request $request, Response $response): Response
     {
@@ -47,17 +50,31 @@ class LoginAction extends BaseAction
         $user = $this->userRepository->findByUsernameOrEmail($login);
 
         if ($user === null) {
-            return $this->errorResponse($response, 'INVALID_CREDENTIALS', 'Invalid username/email or password', 401);
+            $this->rateLimitRepo->recordAttempt($this->getClientIp($request));
+            throw new AuthenticationException(
+                'Invalid username/email or password',
+                'INVALID_CREDENTIALS',
+                401
+            );
         }
 
         // Check active
         if (!$user->isActive) {
-            return $this->errorResponse($response, 'ACCOUNT_INACTIVE', 'Account is deactivated', 401);
+            throw new AuthenticationException(
+                'Account is deactivated',
+                'ACCOUNT_INACTIVE',
+                401
+            );
         }
 
         // Verify password
         if (!password_verify($password, $user->password)) {
-            return $this->errorResponse($response, 'INVALID_CREDENTIALS', 'Invalid username/email or password', 401);
+            $this->rateLimitRepo->recordAttempt($this->getClientIp($request));
+            throw new AuthenticationException(
+                'Invalid username/email or password',
+                'INVALID_CREDENTIALS',
+                401
+            );
         }
 
         $accessExpiry = (int) ($this->settings['jwt']['access_token_expiry'] ?? 900);
@@ -76,7 +93,6 @@ class LoginAction extends BaseAction
         $this->refreshTokenRepo->store($user->id, $refreshData['hash'], $expiresAt);
 
         return $this->jsonResponse($response, [
-            'statusCode' => 200,
             'data' => [
                 'access_token' => $accessToken,
                 'refresh_token' => $refreshData['raw_token'],
@@ -85,10 +101,15 @@ class LoginAction extends BaseAction
                 'user' => [
                     'id' => $user->id,
                     'username' => $user->username,
-                    'nama_lengkap' => $user->namaLengkap,
+                    'full_name' => $user->fullName,
                     'level_id' => $user->levelId,
                 ],
             ],
         ]);
+    }
+
+    private function getClientIp(Request $request): string
+    {
+        return $request->getServerParams()['REMOTE_ADDR'] ?? '0.0.0.0';
     }
 }

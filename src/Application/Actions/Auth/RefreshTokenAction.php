@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Imc\Application\Actions\Auth;
 
 use Imc\Application\Actions\BaseAction;
+use Imc\Domain\Exceptions\AuthenticationException;
 use Imc\Domain\RefreshToken\RefreshTokenRepositoryInterface;
 use Imc\Domain\Token\TokenService;
 use Imc\Domain\User\UserRepositoryInterface;
@@ -18,7 +19,8 @@ class RefreshTokenAction extends BaseAction
         private RefreshTokenRepositoryInterface $refreshTokenRepo,
         private UserRepositoryInterface $userRepository,
         private array $settings,
-    ) {}
+    ) {
+    }
 
     public function __invoke(Request $request, Response $response): Response
     {
@@ -35,25 +37,24 @@ class RefreshTokenAction extends BaseAction
         $row = $this->refreshTokenRepo->findByHash($receivedHash);
 
         if ($row === null) {
-            return $this->errorResponse($response, 'INVALID_TOKEN', 'Invalid refresh token', 401);
+            throw new AuthenticationException('Invalid refresh token', 'INVALID_TOKEN');
         }
 
         if (strtotime($row->expires_at) < time()) {
-            return $this->errorResponse($response, 'TOKEN_EXPIRED', 'Refresh token has expired', 401);
+            throw new AuthenticationException('Refresh token has expired', 'TOKEN_EXPIRED');
         }
 
         if ($row->revoked_at !== null) {
-            return $this->errorResponse($response, 'TOKEN_REVOKED', 'Refresh token has been revoked', 401);
-        }
-
-        $revoked = $this->refreshTokenRepo->revoke((int) $row->id);
-        if (!$revoked) {
-            return $this->errorResponse($response, 'TOKEN_REVOKED', 'Refresh token has been revoked', 401);
+            throw new AuthenticationException('Refresh token has been revoked', 'TOKEN_REVOKED');
         }
 
         $user = $this->userRepository->findById((int) $row->user_id);
         if ($user === null) {
-            return $this->errorResponse($response, 'INTERNAL_ERROR', 'User not found', 500);
+            throw new AuthenticationException('User not found', 'INTERNAL_ERROR', 500);
+        }
+
+        if (!$user->isActive) {
+            throw new AuthenticationException('Account is deactivated', 'ACCOUNT_INACTIVE');
         }
 
         $accessExpiry = (int) ($this->settings['jwt']['access_token_expiry'] ?? 900);
@@ -67,10 +68,10 @@ class RefreshTokenAction extends BaseAction
 
         $refreshData = $this->tokenService->generateRefreshToken();
         $expiresAt = new \DateTimeImmutable('+' . $refreshExpiry . ' seconds');
-        $this->refreshTokenRepo->store($user->id, $refreshData['hash'], $expiresAt);
+
+        $this->refreshTokenRepo->rotateToken((int) $row->id, $user->id, $refreshData['hash'], $expiresAt);
 
         return $this->jsonResponse($response, [
-            'statusCode' => 200,
             'data' => [
                 'access_token' => $accessToken,
                 'refresh_token' => $refreshData['raw_token'],

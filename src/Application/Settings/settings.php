@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+// Auto-detect environment:
+// - Docker: DB_HOST is explicitly set (e.g. 'db') via docker-compose environment
+// - Local:  DB_HOST is not set → default to localhost
+// This allows the same codebase to work in both environments without .env changes.
+$explicitHost = $_ENV['DB_HOST'] ?? null;
+$isDocker = $explicitHost !== null && $explicitHost !== 'localhost' && $explicitHost !== '127.0.0.1';
+
 return [
     'app' => [
         'env' => $_ENV['APP_ENV'] ?? 'production',
@@ -9,11 +16,11 @@ return [
 
     'db' => [
         'driver' => 'pgsql',
-        'host' => $_ENV['DB_HOST'] ?? 'db',
+        'host' => $explicitHost ?? ($isDocker ? 'db' : 'localhost'),
         'port' => $_ENV['DB_PORT'] ?? '5432',
         'database' => $_ENV['DB_DATABASE'] ?? 'imc',
         'username' => $_ENV['DB_USERNAME'] ?? 'postgres',
-        'password' => $_ENV['DB_PASSWORD'] ?? '',
+        'password' => $_ENV['DB_PASSWORD'] ?? 'postgres',
         'charset' => 'utf8',
         'prefix' => '',
         'schema' => 'public',

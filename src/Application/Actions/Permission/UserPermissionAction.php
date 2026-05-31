@@ -15,7 +15,8 @@ class UserPermissionAction extends BaseAction
     public function __construct(
         private readonly PermissionRepositoryInterface $permissionRepo,
         private readonly UserRepositoryInterface $userRepository,
-    ) {}
+    ) {
+    }
 
     public function __invoke(Request $request, Response $response, array $args): Response
     {

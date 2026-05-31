@@ -54,7 +54,7 @@ class UserTest extends TestCase
     public function testCreateUser(): void
     {
         $response = $this->handle('POST', '/api/users', [
-            'nama_lengkap' => 'Test User',
+            'full_name' => 'Test User',
             'username' => 'testuser',
             'email' => 'test@example.com',
             'password' => 'password123',
@@ -71,14 +71,14 @@ class UserTest extends TestCase
     public function testCreateUserDuplicateUsername(): void
     {
         $this->handle('POST', '/api/users', [
-            'nama_lengkap' => 'First',
+            'full_name' => 'First',
             'username' => 'duplicateme',
             'email' => 'first@example.com',
             'password' => 'password123',
         ], $this->token);
 
         $response = $this->handle('POST', '/api/users', [
-            'nama_lengkap' => 'Second',
+            'full_name' => 'Second',
             'username' => 'duplicateme',
             'email' => 'second@example.com',
             'password' => 'password123',
@@ -93,14 +93,14 @@ class UserTest extends TestCase
     public function testCreateUserDuplicateEmail(): void
     {
         $this->handle('POST', '/api/users', [
-            'nama_lengkap' => 'First',
+            'full_name' => 'First',
             'username' => 'firstone',
             'email' => 'dupemail@example.com',
             'password' => 'password123',
         ], $this->token);
 
         $response = $this->handle('POST', '/api/users', [
-            'nama_lengkap' => 'Second',
+            'full_name' => 'Second',
             'username' => 'secondone',
             'email' => 'dupemail@example.com',
             'password' => 'password123',
@@ -124,7 +124,7 @@ class UserTest extends TestCase
     public function testCreateUserInvalidEmail(): void
     {
         $response = $this->handle('POST', '/api/users', [
-            'nama_lengkap' => 'Bad Email',
+            'full_name' => 'Bad Email',
             'username' => 'bademail',
             'email' => 'not-an-email',
             'password' => 'password123',
@@ -138,7 +138,7 @@ class UserTest extends TestCase
     public function testCreateUserShortPassword(): void
     {
         $response = $this->handle('POST', '/api/users', [
-            'nama_lengkap' => 'Short',
+            'full_name' => 'Short',
             'username' => 'shortpw',
             'email' => 'short@example.com',
             'password' => 'ab',
@@ -152,12 +152,12 @@ class UserTest extends TestCase
     public function testUpdateUser(): void
     {
         $response = $this->handle('PUT', '/api/users/1', [
-            'nama_lengkap' => 'Admin Updated',
+            'full_name' => 'Admin Updated',
         ], $this->token);
         $body = $this->getJsonBody($response);
 
         $this->assertStatusCode(200, $response);
-        $this->assertEquals('Admin Updated', $body['data']['nama_lengkap']);
+        $this->assertEquals('Admin Updated', $body['data']['full_name']);
         $this->assertArrayNotHasKey('password', $body['data']);
     }
 
@@ -183,7 +183,7 @@ class UserTest extends TestCase
     public function testDeleteUser(): void
     {
         $createResp = $this->handle('POST', '/api/users', [
-            'nama_lengkap' => 'Delete Me',
+            'full_name' => 'Delete Me',
             'username' => 'deleteme',
             'email' => 'delete@example.com',
             'password' => 'password123',
@@ -207,7 +207,7 @@ class UserTest extends TestCase
     public function testCreateUserInvalidLevelId(): void
     {
         $response = $this->handle('POST', '/api/users', [
-            'nama_lengkap' => 'Bad Level',
+            'full_name' => 'Bad Level',
             'username' => 'badlevel',
             'email' => 'badlevel@example.com',
             'password' => 'password123',

@@ -4,24 +4,27 @@ declare(strict_types=1);
 
 use DI\ContainerBuilder;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use Imc\Domain\Token\TokenService;
-use Imc\Domain\User\UserRepositoryInterface;
-use Imc\Domain\User\UserRepository;
-use Imc\Domain\Level\LevelRepositoryInterface;
-use Imc\Domain\Level\LevelRepository;
-use Imc\Domain\Page\PageRepositoryInterface;
-use Imc\Domain\Page\PageRepository;
-use Imc\Domain\Permission\PermissionRepositoryInterface;
-use Imc\Domain\Permission\PermissionRepository;
-use Imc\Domain\RateLimit\RateLimitRepositoryInterface;
-use Imc\Domain\RateLimit\RateLimitRepository;
-use Imc\Domain\RefreshToken\RefreshTokenRepositoryInterface;
-use Imc\Domain\RefreshToken\RefreshTokenRepository;
 use Imc\Application\Actions\Auth\LoginAction;
 use Imc\Application\Actions\Auth\RefreshTokenAction;
-use Slim\Psr7\Factory\ResponseFactory;
+use Imc\Application\Middleware\JwtMiddleware;
+use Imc\Application\Validation\LevelValidator;
+use Imc\Application\Validation\PageValidator;
+use Imc\Application\Validation\UserValidator;
+use Imc\Domain\Level\LevelRepository;
+use Imc\Domain\Level\LevelRepositoryInterface;
+use Imc\Domain\Page\PageRepository;
+use Imc\Domain\Page\PageRepositoryInterface;
+use Imc\Domain\Permission\PermissionRepository;
+use Imc\Domain\Permission\PermissionRepositoryInterface;
+use Imc\Domain\RateLimit\RateLimitRepository;
+use Imc\Domain\RateLimit\RateLimitRepositoryInterface;
+use Imc\Domain\RefreshToken\RefreshTokenRepository;
+use Imc\Domain\RefreshToken\RefreshTokenRepositoryInterface;
+use Imc\Domain\Token\TokenService;
+use Imc\Domain\User\UserRepository;
+use Imc\Domain\User\UserRepositoryInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
-use Imc\Application\Middleware\RateLimitMiddleware;
+use Slim\Psr7\Factory\ResponseFactory;
 
 // Bootstrap Eloquent Capsule first
 $settings = require __DIR__ . '/../../Application/Settings/settings.php';
@@ -64,6 +67,12 @@ $containerBuilder->addDefinitions([
     RefreshTokenAction::class => \DI\autowire()->constructorParameter('settings', \DI\get('settings')),
 
     ResponseFactoryInterface::class => \DI\autowire(ResponseFactory::class),
+
+    JwtMiddleware::class => \DI\autowire(),
+
+    LevelValidator::class => \DI\autowire(),
+    UserValidator::class => \DI\autowire(),
+    PageValidator::class => \DI\autowire(),
 ]);
 
 return $containerBuilder->build();
