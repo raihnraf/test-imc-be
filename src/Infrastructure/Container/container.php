@@ -29,12 +29,18 @@ use Slim\Psr7\Factory\ResponseFactory;
 // Bootstrap Eloquent Capsule first
 $settings = require __DIR__ . '/../../Application/Settings/settings.php';
 
-// Skip if Capsule already initialized (e.g., from test suite)
+// Always reinitialize Capsule — PHP built-in server keeps static state
+// between requests which can leave stale/null connections
 $capsule = null;
 try {
     $capsule = Capsule::instance();
-} catch (\BadMethodCallException $e) {
-    // No global instance set yet — proceed to create one
+    // Verify the instance actually has a valid connection
+    if ($capsule !== null) {
+        $capsule->getConnection()->getPdo();
+    }
+} catch (\Throwable $e) {
+    // Instance is stale or doesn't exist — create fresh
+    $capsule = null;
 }
 
 if ($capsule === null) {

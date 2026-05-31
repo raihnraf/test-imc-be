@@ -13,18 +13,22 @@ class CorsMiddleware implements MiddlewareInterface
 {
     public function process(Request $request, RequestHandler $handler): Response
     {
+        if ($request->getMethod() === 'OPTIONS') {
+            $response = new \Slim\Psr7\Response();
+            return $response
+                ->withHeader('Access-Control-Allow-Origin', '*')
+                ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+                ->withHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+                ->withHeader('Access-Control-Max-Age', '3600')
+                ->withStatus(204);
+        }
+
         $response = $handler->handle($request);
 
-        $response = $response
+        return $response
             ->withHeader('Access-Control-Allow-Origin', '*')
             ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
             ->withHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
             ->withHeader('Access-Control-Max-Age', '3600');
-
-        if ($request->getMethod() === 'OPTIONS') {
-            return $response->withStatus(204);
-        }
-
-        return $response;
     }
 }

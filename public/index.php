@@ -21,9 +21,10 @@ Slim\Factory\AppFactory::setContainer($container);
 $app = Slim\Factory\AppFactory::create();
 
 // Middleware (LIFO: last added = first executed)
-$app->add(CorsMiddleware::class);
+// Cors must be outermost to catch OPTIONS preflight before Routing rejects them
 $app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
+$app->add(CorsMiddleware::class);
 
 // Error middleware
 $settings = $container->get('settings');
