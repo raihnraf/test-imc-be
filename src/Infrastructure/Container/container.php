@@ -5,6 +5,7 @@ declare(strict_types=1);
 use DI\ContainerBuilder;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Imc\Application\Actions\Auth\LoginAction;
+use Imc\Application\Actions\Auth\LogoutAction;
 use Imc\Application\Actions\Auth\RefreshTokenAction;
 use Imc\Application\Middleware\JwtMiddleware;
 use Imc\Application\Validation\LevelValidator;

@@ -32,6 +32,14 @@ class RefreshTokenRepository implements RefreshTokenRepositoryInterface
         return $affected > 0;
     }
 
+    public function revokeAllForUser(int $userId): int
+    {
+        return Capsule::table('refresh_tokens')
+            ->where('user_id', $userId)
+            ->whereNull('revoked_at')
+            ->update(['revoked_at' => date('Y-m-d H:i:s')]);
+    }
+
     public function rotateToken(int $oldTokenId, int $userId, string $newTokenHash, \DateTimeInterface $expiresAt): void
     {
         Capsule::connection()->transaction(function () use ($oldTokenId, $userId, $newTokenHash, $expiresAt) {

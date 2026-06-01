@@ -77,8 +77,8 @@ class LoginAction extends BaseAction
             );
         }
 
-        $accessExpiry = (int) ($this->settings['jwt']['access_token_expiry'] ?? 900);
-        $refreshExpiry = (int) ($this->settings['jwt']['refresh_token_expiry'] ?? 604800);
+        $accessExpiry = (int) $this->settings['jwt']['access_token_expiry'];
+        $refreshExpiry = (int) $this->settings['jwt']['refresh_token_expiry'];
 
         // Generate JWT access token
         $accessToken = $this->tokenService->generateToken([

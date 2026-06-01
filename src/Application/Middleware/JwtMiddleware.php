@@ -40,7 +40,7 @@ class JwtMiddleware implements MiddlewareInterface
 
             return $handler->handle($request);
         } catch (AuthenticationException $e) {
-            return $this->errorResponse($e->getCode(), 'INVALID_TOKEN', $e->getMessage());
+            return $this->errorResponse($e->getCode(), $e->getErrorType(), $e->getMessage());
         }
     }
 

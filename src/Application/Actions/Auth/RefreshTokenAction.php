@@ -57,8 +57,8 @@ class RefreshTokenAction extends BaseAction
             throw new AuthenticationException('Account is deactivated', 'ACCOUNT_INACTIVE');
         }
 
-        $accessExpiry = (int) ($this->settings['jwt']['access_token_expiry'] ?? 900);
-        $refreshExpiry = (int) ($this->settings['jwt']['refresh_token_expiry'] ?? 604800);
+        $accessExpiry = (int) $this->settings['jwt']['access_token_expiry'];
+        $refreshExpiry = (int) $this->settings['jwt']['refresh_token_expiry'];
 
         $accessToken = $this->tokenService->generateToken([
             'user_id' => $user->id,

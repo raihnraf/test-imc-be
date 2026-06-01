@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Imc\Application\Actions\Auth\LoginAction;
+use Imc\Application\Actions\Auth\LogoutAction;
 use Imc\Application\Actions\Auth\RefreshTokenAction;
 use Imc\Application\Actions\Level\LevelAction;
 use Imc\Application\Actions\Page\PageAction;
@@ -28,6 +29,7 @@ $setupRoutes = function (Slim\App $app): void {
     $app->group('/auth', function (Group $group): void {
         $group->post('/login', LoginAction::class)->add(RateLimitMiddleware::class);
         $group->post('/refresh', RefreshTokenAction::class);
+        $group->post('/logout', LogoutAction::class)->add(JwtMiddleware::class);
     });
 
     // Protected API routes
