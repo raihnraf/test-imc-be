@@ -21,7 +21,7 @@ curl http://localhost:8080/                 # → {"status":"ok"}
 
 | Role | Username | Password |
 |------|----------|----------|
-| Super Admin | `admin` | `admin123` |
+| Super Admin | `admin` | `admin123` (ganti via `ADMIN_PASSWORD` di `.env`) |
 
 ---
 
@@ -69,7 +69,7 @@ curl http://localhost:8080/                 # → {"status":"ok"}
 ### Contoh Penggunaan API
 
 ```bash
-# 1. Login — dapatkan JWT token
+# 1. Login — dapatkan JWT token (password default: admin123, bisa diganti via ADMIN_PASSWORD di .env)
 curl -X POST http://localhost:8080/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}'
@@ -83,7 +83,7 @@ curl http://localhost:8080/api/pages \
   -H "Authorization: Bearer <access_token_dari_login>"
 ```
 
-**Default admin login:** `admin` / `admin123`
+**Default admin login:** `admin` / `admin123` (atau set `ADMIN_PASSWORD` di `.env` lalu re-seed)
 
 ---
 

@@ -31,11 +31,12 @@ Capsule::table('pages')->insert([
 ]);
 
 // Insert default admin
+$adminPassword = getenv('ADMIN_PASSWORD') ?: 'admin123';
 Capsule::table('users')->insert([
     'nama_lengkap' => 'Super Admin',
     'username' => 'admin',
     'email' => 'admin@imc.local',
-    'password' => password_hash('admin123', PASSWORD_ARGON2ID),
+    'password' => password_hash($adminPassword, PASSWORD_ARGON2ID),
     'level_id' => 1,
     'is_active' => true,
 ]);
