@@ -172,9 +172,9 @@ Di luar spesifikasi minimum, project ini dilengkapi dengan fitur-fitur engineeri
 
 ### Testing & QA
 
-- **192 PHPUnit test**, 551 assertion — semuanya **passing** (local + Docker)
-- **Integration tests:** 74 test mencakup semua endpoint (CRUD, auth, permission, rate limit, token refresh)
-- **Unit tests:** 118 test untuk validator, repository logic, permission resolution, token service, pagination
+- **192 PHPUnit test**, 530 assertion — semuanya **passing** (local + Docker)
+- **Integration tests:** 78 test mencakup semua endpoint (CRUD, auth, permission, rate limit, token refresh)
+- **Unit tests:** 114 test untuk validator, repository logic, permission resolution, token service, pagination
 - **PHPStan level 5:** Static analysis — 0 error pada semua source code
 - **PHP-CS-Fixer:** Coding standard otomatis via `.php-cs-fixer.dist.php`
 
@@ -374,7 +374,7 @@ Test bisa dijalankan di **Docker** maupun **local** — konfigurasi database aut
 ### Via Docker
 
 ```bash
-# Semua test (143 test, 320 assertion)
+# Semua test (192 test, 539 assertion)
 docker compose exec app ./vendor/bin/phpunit
 
 # Test spesifik
@@ -408,9 +408,9 @@ docker compose exec app ./vendor/bin/phpstan analyse src/ --level=5 --memory-lim
 
 | Suite | Test | Assertion |
 |---|---|---|
-| Unit (Validators, Domain logic, pagination, permission resolution) | 118 | 360 |
-| Integration (API endpoints) | 74 | 191 |
-| **Total** | **192** | **551** |
+| Unit (Validators, Domain logic, pagination, permission resolution) | 114 | 326 |
+| Integration (API endpoints) | 78 | 204 |
+| **Total** | **192** | **530** |
 
 ### Troubleshooting
 
