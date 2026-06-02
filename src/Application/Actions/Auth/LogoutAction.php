@@ -22,6 +22,11 @@ class LogoutAction extends BaseAction
 
         $revokedCount = $this->refreshTokenRepo->revokeAllForUser($userId);
 
+        // Probabilistic cleanup: ~2% chance to clean expired tokens on logout
+        if (random_int(1, 50) === 1) {
+            $this->refreshTokenRepo->cleanupExpired();
+        }
+
         return $this->jsonResponse($response, [
             'statusCode' => 200,
             'message' => 'Successfully logged out',

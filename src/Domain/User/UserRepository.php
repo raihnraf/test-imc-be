@@ -12,15 +12,18 @@ class UserRepository implements UserRepositoryInterface
 {
     public function findById(int $id): ?User
     {
-        $row = Capsule::table('users')->where('id', $id)->first();
+        $row = Capsule::table('users')->where('id', $id)->whereNull('deleted_at')->first();
         return $row ? $this->mapToEntity((array) $row) : null;
     }
 
     public function findByUsernameOrEmail(string $login): ?User
     {
         $row = Capsule::table('users')
-            ->where('username', $login)
-            ->orWhere('email', $login)
+            ->where(function ($q) use ($login) {
+                $q->where('username', $login)
+                  ->orWhere('email', $login);
+            })
+            ->whereNull('deleted_at')
             ->first();
 
         return $row ? $this->mapToEntity((array) $row) : null;
@@ -120,12 +123,23 @@ class UserRepository implements UserRepositoryInterface
 
     public function delete(int $id): bool
     {
-        return Capsule::table('users')->where('id', $id)->delete() > 0;
+        return Capsule::table('users')
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->update(['deleted_at' => date('Y-m-d H:i:s')]) > 0;
+    }
+
+    public function restore(int $id): bool
+    {
+        return Capsule::table('users')
+            ->where('id', $id)
+            ->whereNotNull('deleted_at')
+            ->update(['deleted_at' => null]) > 0;
     }
 
     public function existsByUsername(string $username, ?int $excludeId = null): bool
     {
-        $query = Capsule::table('users')->where('username', $username);
+        $query = Capsule::table('users')->where('username', $username)->whereNull('deleted_at');
 
         if ($excludeId !== null) {
             $query->where('id', '!=', $excludeId);
@@ -136,7 +150,7 @@ class UserRepository implements UserRepositoryInterface
 
     public function existsByEmail(string $email, ?int $excludeId = null): bool
     {
-        $query = Capsule::table('users')->where('email', $email);
+        $query = Capsule::table('users')->where('email', $email)->whereNull('deleted_at');
 
         if ($excludeId !== null) {
             $query->where('id', '!=', $excludeId);
@@ -157,6 +171,7 @@ class UserRepository implements UserRepositoryInterface
             isActive: (bool) $data['is_active'],
             createdAt: $data['created_at'] ?? null,
             updatedAt: $data['updated_at'] ?? null,
+            deletedAt: $data['deleted_at'] ?? null,
         );
     }
 }

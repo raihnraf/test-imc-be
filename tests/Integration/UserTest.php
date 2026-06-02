@@ -85,9 +85,9 @@ class UserTest extends TestCase
         ], $this->token);
         $body = $this->getJsonBody($response);
 
-        $this->assertStatusCode(409, $response);
-        $this->assertEquals('DUPLICATE_ENTRY', $body['error']['type']);
-        $this->assertEquals('username', $body['error']['field']);
+        $this->assertStatusCode(422, $response);
+        $this->assertEquals('VALIDATION_ERROR', $body['error']['type']);
+        $this->assertArrayHasKey('username', $body['error']['errors']);
     }
 
     public function testCreateUserDuplicateEmail(): void
@@ -107,9 +107,9 @@ class UserTest extends TestCase
         ], $this->token);
         $body = $this->getJsonBody($response);
 
-        $this->assertStatusCode(409, $response);
-        $this->assertEquals('DUPLICATE_ENTRY', $body['error']['type']);
-        $this->assertEquals('email', $body['error']['field']);
+        $this->assertStatusCode(422, $response);
+        $this->assertEquals('VALIDATION_ERROR', $body['error']['type']);
+        $this->assertArrayHasKey('email', $body['error']['errors']);
     }
 
     public function testCreateUserValidationErrors(): void

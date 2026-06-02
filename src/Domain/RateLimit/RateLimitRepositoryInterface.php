@@ -9,4 +9,5 @@ interface RateLimitRepositoryInterface
     public function isRateLimited(string $ipAddress, int $maxAttempts = 5, int $windowSeconds = 60): bool;
     public function recordAttempt(string $ipAddress): void;
     public function cleanupOldRecords(int $cleanupSeconds = 300): void;
+    public function getSecondsUntilReset(string $ipAddress, int $windowSeconds = 60): int;
 }

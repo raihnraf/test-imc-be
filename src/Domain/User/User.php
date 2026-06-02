@@ -11,12 +11,28 @@ class User
         public string $fullName = '',
         public string $username = '',
         public string $email = '',
-        public string $password = '',
+        private string $password = '',
         public ?int $levelId = null,
         public bool $isActive = true,
         public ?string $createdAt = null,
         public ?string $updatedAt = null,
+        public ?string $deletedAt = null,
     ) {
+    }
+
+    public function isDeleted(): bool
+    {
+        return $this->deletedAt !== null;
+    }
+
+    public function verifyPassword(string $plainPassword): bool
+    {
+        return password_verify($plainPassword, $this->password);
+    }
+
+    public function getPasswordHash(): string
+    {
+        return $this->password;
     }
 
     public function toApiResponse(): array

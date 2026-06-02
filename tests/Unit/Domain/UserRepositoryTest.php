@@ -106,7 +106,7 @@ class UserRepositoryTest extends TestCase
             'password' => 'mypassword',
         ]);
 
-        $this->assertStringStartsWith('$argon2id$', $user->password);
+        $this->assertStringStartsWith('$argon2id$', $user->getPasswordHash());
         $this->assertEquals("hash{$this->suffix}", $user->username);
     }
 
@@ -132,10 +132,10 @@ class UserRepositoryTest extends TestCase
             'password' => 'oldpassword',
         ]);
 
-        $oldHash = $user->password;
+        $oldHash = $user->getPasswordHash();
         $updated = $this->repository->update($user->id, ['password' => 'newpassword']);
-        $this->assertNotEquals($oldHash, $updated->password);
-        $this->assertStringStartsWith('$argon2id$', $updated->password);
+        $this->assertNotEquals($oldHash, $updated->getPasswordHash());
+        $this->assertStringStartsWith('$argon2id$', $updated->getPasswordHash());
     }
 
     public function testDelete(): void

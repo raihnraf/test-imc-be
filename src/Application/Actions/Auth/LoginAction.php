@@ -68,7 +68,7 @@ class LoginAction extends BaseAction
         }
 
         // Verify password
-        if (!password_verify($password, $user->password)) {
+        if (!$user->verifyPassword($password)) {
             $this->rateLimitRepo->recordAttempt($this->getClientIp($request));
             throw new AuthenticationException(
                 'Invalid username/email or password',

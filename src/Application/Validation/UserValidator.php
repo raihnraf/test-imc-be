@@ -49,7 +49,7 @@ class UserValidator
                     $errors['username'] = ['Username must not exceed 50 characters'];
                 } elseif (!preg_match('/^[a-zA-Z][a-zA-Z0-9_]*$/', $trimmed)) {
                     $errors['username'] = ['Username must start with a letter and contain only letters, numbers, and underscores'];
-                } elseif ($excludeId !== null && $this->userRepository->existsByUsername($trimmed, $excludeId)) {
+                } elseif ($this->userRepository->existsByUsername($trimmed, $excludeId)) {
                     $errors['username'] = ['Username already taken'];
                 }
             }
@@ -69,7 +69,7 @@ class UserValidator
                     $errors['email'] = ['Email format is invalid'];
                 } elseif (mb_strlen($trimmed) > 100) {
                     $errors['email'] = ['Email must not exceed 100 characters'];
-                } elseif ($excludeId !== null && $this->userRepository->existsByEmail($trimmed, $excludeId)) {
+                } elseif ($this->userRepository->existsByEmail($trimmed, $excludeId)) {
                     $errors['email'] = ['Email already taken'];
                 }
             }

@@ -28,6 +28,8 @@ $migrations = [
     '007_create_login_attempts_table.php',
     '008_create_refresh_tokens_table.php',
     '009_add_nama_level_unique_constraint.php',
+    '010_add_permission_indexes.php',
+    '011_add_deleted_at_to_users.php',
 ];
 
 $count = 0;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Imc\Tests\Integration;
 
+use Illuminate\Database\Capsule\Manager as Capsule;
 use Imc\Tests\TestCase;
 
 class RateLimitTest extends TestCase
@@ -14,7 +15,7 @@ class RateLimitTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        \Illuminate\Database\Capsule\Manager::table('login_attempts')->truncate();
+        Capsule::table('login_attempts')->truncate();
     }
 
     public function testRateLimitBlocksAfter5Attempts(): void
@@ -38,6 +39,12 @@ class RateLimitTest extends TestCase
         $this->assertStatusCode(429, $response);
         $body = $this->getJsonBody($response);
         $this->assertEquals('RATE_LIMITED', $body['error']['type']);
+        
+        // Verify Retry-After header is present
+        $this->assertTrue($response->hasHeader('Retry-After'), 'Response should have Retry-After header');
+        $retryAfter = $response->getHeaderLine('Retry-After');
+        $this->assertIsNumeric($retryAfter, 'Retry-After should be numeric');
+        $this->assertGreaterThan(0, (int) $retryAfter, 'Retry-After should be greater than 0');
     }
 
     public function testSuccessfulLoginDoesNotCountTowardRateLimit(): void

@@ -38,4 +38,21 @@ class RateLimitRepository implements RateLimitRepositoryInterface
             ->where('attempted_at', '<', Carbon::now()->subSeconds($cleanupSeconds))
             ->delete();
     }
+
+    public function getSecondsUntilReset(string $ipAddress, int $windowSeconds = 60): int
+    {
+        $oldest = Capsule::table('login_attempts')
+            ->where('ip_address', $ipAddress)
+            ->where('attempted_at', '>', Carbon::now()->subSeconds($windowSeconds))
+            ->orderBy('attempted_at', 'asc')
+            ->value('attempted_at');
+
+        if ($oldest === null) {
+            return 0;
+        }
+
+        $resetAt = Carbon::parse($oldest)->addSeconds($windowSeconds);
+        
+        return max(0, $resetAt->getTimestamp() - time());
+    }
 }

@@ -27,6 +27,8 @@ class RateLimitMiddleware implements MiddlewareInterface
         $clientIp = $serverParams['REMOTE_ADDR'] ?? '0.0.0.0';
 
         if ($this->rateLimitRepo->isRateLimited($clientIp, $this->maxAttempts, $this->windowSeconds)) {
+            $retryAfter = $this->rateLimitRepo->getSecondsUntilReset($clientIp, $this->windowSeconds);
+            
             $response = $this->responseFactory->createResponse(429);
             $body = json_encode([
                 'statusCode' => 429,
@@ -37,7 +39,9 @@ class RateLimitMiddleware implements MiddlewareInterface
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
             $response->getBody()->write($body !== false ? $body : '');
-            return $response->withHeader('Content-Type', 'application/json');
+            return $response
+                ->withHeader('Content-Type', 'application/json')
+                ->withHeader('Retry-After', (string) $retryAfter);
         }
 
         $response = $handler->handle($request);

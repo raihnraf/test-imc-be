@@ -87,14 +87,7 @@ class UserAction extends BaseAction
         }
 
         $username = trim($body['username']);
-        if ($this->userRepository->existsByUsername($username)) {
-            throw new DuplicateEntryException('Username already taken', 'username');
-        }
-
         $email = trim($body['email']);
-        if ($this->userRepository->existsByEmail($email)) {
-            throw new DuplicateEntryException('Email already taken', 'email');
-        }
 
         if (!empty($body['level_id'])) {
             $level = $this->levelRepository->findById((int) $body['level_id']);

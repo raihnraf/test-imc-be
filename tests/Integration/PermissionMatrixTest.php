@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Imc\Tests\Integration;
 
+use Illuminate\Database\Capsule\Manager as Capsule;
 use Imc\Tests\TestCase;
 
 class PermissionMatrixTest extends TestCase
@@ -14,6 +15,24 @@ class PermissionMatrixTest extends TestCase
     {
         parent::setUp();
         $this->token = $this->getAuthToken();
+
+        // Grant level 2 access to /permissions page so non-admin can reach the action
+        // (action's own authorization logic handles self-check)
+        $permissionsPage = Capsule::table('pages')
+            ->where('route_path', '/permissions')
+            ->first();
+        if ($permissionsPage) {
+            $exists = Capsule::table('level_permissions')
+                ->where('level_id', 2)
+                ->where('page_id', $permissionsPage->id)
+                ->exists();
+            if (!$exists) {
+                Capsule::table('level_permissions')->insert([
+                    'level_id' => 2,
+                    'page_id' => $permissionsPage->id,
+                ]);
+            }
+        }
     }
 
     public function testGetLevelMatrixViaQueryParam(): void
@@ -66,5 +85,86 @@ class PermissionMatrixTest extends TestCase
     {
         $response = $this->handle('GET', '/api/permissions/matrix?level_id=9999', null, $this->token);
         $this->assertStatusCode(404, $response);
+    }
+
+    public function testNonAdminCannotViewLevelMatrix(): void
+    {
+        $nonAdminToken = $this->createNonAdminUserAndGetToken();
+
+        $response = $this->handle('GET', '/api/permissions/matrix?level_id=1', null, $nonAdminToken);
+        $body = $this->getJsonBody($response);
+
+        $this->assertStatusCode(403, $response);
+        $this->assertEquals('FORBIDDEN', $body['error']['type']);
+    }
+
+    public function testNonAdminCannotViewOtherUserMatrix(): void
+    {
+        $nonAdminToken = $this->createNonAdminUserAndGetToken();
+
+        $response = $this->handle('GET', '/api/permissions/matrix?user_id=1', null, $nonAdminToken);
+        $body = $this->getJsonBody($response);
+
+        $this->assertStatusCode(403, $response);
+        $this->assertEquals('FORBIDDEN', $body['error']['type']);
+        $this->assertStringContainsString('own permissions', $body['error']['description']);
+    }
+
+    public function testNonAdminCanViewOwnMatrix(): void
+    {
+        $nonAdminUserId = $this->createNonAdminUserAndGetId();
+        $nonAdminToken = $this->getAuthTokenForUser($nonAdminUserId);
+
+        $response = $this->handle('GET', '/api/permissions/matrix?user_id=' . $nonAdminUserId, null, $nonAdminToken);
+        $body = $this->getJsonBody($response);
+
+        $this->assertStatusCode(200, $response);
+        $this->assertEquals('user', $body['type']);
+        $this->assertEquals($nonAdminUserId, $body['user_id']);
+    }
+
+    public function testNonAdminCannotViewAllPages(): void
+    {
+        $nonAdminToken = $this->createNonAdminUserAndGetToken();
+
+        $response = $this->handle('GET', '/api/permissions/matrix', null, $nonAdminToken);
+        $body = $this->getJsonBody($response);
+
+        $this->assertStatusCode(403, $response);
+        $this->assertEquals('FORBIDDEN', $body['error']['type']);
+    }
+
+    private function createNonAdminUserAndGetToken(): string
+    {
+        $userId = $this->createNonAdminUserAndGetId();
+        return $this->getAuthTokenForUser($userId);
+    }
+
+    private function createNonAdminUserAndGetId(): int
+    {
+        $response = $this->handle('POST', '/api/users', [
+            'full_name' => 'Non Admin User',
+            'username' => 'nonadmin' . uniqid(),
+            'email' => 'nonadmin' . uniqid() . '@example.com',
+            'password' => 'password123',
+            'level_id' => 2,
+            'is_active' => true,
+        ], $this->token);
+
+        $body = $this->getJsonBody($response);
+        return $body['data']['id'];
+    }
+
+    private function getAuthTokenForUser(int $userId): string
+    {
+        $user = Capsule::table('users')->where('id', $userId)->first();
+
+        $response = $this->handle('POST', '/auth/login', [
+            'username' => $user->username,
+            'password' => 'password123',
+        ]);
+
+        $body = $this->getJsonBody($response);
+        return $body['data']['access_token'];
     }
 }
