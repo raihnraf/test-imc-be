@@ -1,12 +1,47 @@
 # IMC Backend — User Permission Management API
 
-REST API backend untuk mengatur akses pengguna berdasarkan role (level) dan permission per-halaman. Dibangun dengan **Slim PHP 4 + PostgreSQL** sesuai spesifikasi technical test, dengan fitur-fitur tambahan seperti repository pattern, comprehensive testing (143 test), rate limiting, token refresh, dan permission enforcement real-time.
+REST API backend untuk mengatur akses pengguna berdasarkan role (level) dan permission per-halaman. Dibangun dengan **Slim PHP 4 + PostgreSQL** sesuai spesifikasi technical test, dengan fitur-fitur tambahan seperti repository pattern, comprehensive testing (192 tests), rate limiting, token refresh, dan permission enforcement real-time.
 
 > **Repo ini hanya backend.** Frontend Angular 20 ada di repo terpisah.
 
 ---
 
-## Quick Start
+## Quick Start (30 detik)
+
+```bash
+cp .env.example .env
+docker compose up -d
+docker compose exec app php migrations/migrate.php
+docker compose exec app php seeds/seed.php
+# → App running at http://localhost:8080
+curl http://localhost:8080/                 # → {"status":"ok"}
+```
+
+**Default credentials:**
+
+| Role | Username | Password |
+|------|----------|----------|
+| Super Admin | `admin` | `admin123` |
+
+---
+
+## Architecture Decisions
+
+| Decision | Pilihan | Alasan |
+|----------|---------|--------|
+| Password hashing | **Argon2id** | Memory-hard algorithm, resistant terhadap GPU brute-force. Lebih aman dari bcrypt untuk aplikasi baru |
+| Token strategy | **Access + Refresh token rotation** | Access token short-lived (15 menit), refresh token single-use (7 hari). Setelah dipakai, token lama di-revoke — mencegah replay attack |
+| Permission enforcement | **Database lookup per request** | Bukan dari JWT claims. Perubahan permission langsung berlaku tanpa logout. Trade-off: 1 extra query per request, tapi audit trail lebih akurat |
+| Level soft delete | **`deleted_at` column + guard** | Level dengan user aktif tidak bisa dihapus (409 `RESOURCE_IN_USE`). Data historis tetap tersedia untuk audit |
+| Rate limiting | **Sliding window di PostgreSQL** | Bukan in-memory (Redis). Lebih sederhana untuk skala test project, persist across restarts, dan cukup untuk 5 req/menit/IP |
+| Repository pattern | **Interface + implementation** | Semua akses data via interface. Memungkinkan mocking di unit test dan swap implementasi tanpa ubah business logic |
+| Custom exception hierarchy | **7 typed exceptions** | Tidak ada generic `Exception`. Setiap error type punya HTTP status code dan error code yang konsisten |
+| Environment auto-detect | **DB_HOST presence check** | Kode otomatis tahu apakah di Docker atau local. Tidak perlu ubah `.env` untuk switch environment |
+| Eloquent migrations | **illuminate/database** | Migration + seeder tooling dalam satu package. Tidak perlu build custom CLI tool untuk schema management |
+
+---
+
+## Quick Start (Detail)
 
 ### Opsi 1: Docker (Recommended)
 
@@ -117,16 +152,17 @@ Di luar spesifikasi minimum, project ini dilengkapi dengan fitur-fitur engineeri
 
 - **3-layer architecture:** `Application → Domain → Infrastructure` — separation of concerns
 - **Repository Pattern** dengan interface contracts — semua akses data melalui interface, mudah di-test dan di-swap
-- **PHP strict types:** `declare(strict_types=1)` di setiap file PHP (46/46)
+- **PHP strict types:** `declare(strict_types=1)` di setiap file PHP
 - **Custom Exception Hierarchy:** 7 kelas exception terstruktur (`AuthenticationException`, `AuthorizationException`, `ValidationException`, `NotFoundException`, `DuplicateEntryException`, `ResourceInUseException`, `DomainException`) — tidak ada generic exception
 - **Dependency Injection:** PHP-DI container dengan autowiring
-- **Dedicated Validators:** `UserValidator`, `LevelValidator`, `PageValidator` — terpisah dari Action
+- **Dedicated Validators:** `UserValidator` (30 unit tests), `LevelValidator`, `PageValidator` — terpisah dari Action
 - **Trait-based dispatch:** `DispatchByMethod` trait menghilangkan duplikasi method routing di semua Action
 - **Entity `toApiResponse()`:** Mapping entity→response terpusat di entity, bukan di Action
 - **CORS Middleware:** Support cross-origin request untuk frontend terpisah
 
 ### Security
 
+- **Security Headers:** `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Strict-Transport-Security`, `Referrer-Policy`, `Cache-Control: no-store` — diterapkan ke semua response via middleware
 - **Rate Limiting login:** Maksimal 5 percobaan per menit per IP → 429 `RATE_LIMITED` dengan sliding window di PostgreSQL
 - **Token Refresh + Rotation:** Access token 15 menit, refresh token 7 hari. Refresh token single-use — setelah dipakai, token lama langsung di-revoke (replay attack detection)
 - **Permission enforcement real-time:** Setiap request dicek ke database (`hasAccess()` query), bukan dari claims JWT. Perubahan permission langsung berlaku tanpa perlu logout
@@ -136,9 +172,9 @@ Di luar spesifikasi minimum, project ini dilengkapi dengan fitur-fitur engineeri
 
 ### Testing & QA
 
-- **143 PHPUnit test**, 320 assertion — semuanya **passing** (local + Docker)
+- **192 PHPUnit test**, 551 assertion — semuanya **passing** (local + Docker)
 - **Integration tests:** 74 test mencakup semua endpoint (CRUD, auth, permission, rate limit, token refresh)
-- **Unit tests:** 69 test untuk repository logic, permission resolution, token service, pagination
+- **Unit tests:** 118 test untuk validator, repository logic, permission resolution, token service, pagination
 - **PHPStan level 5:** Static analysis — 0 error pada semua source code
 - **PHP-CS-Fixer:** Coding standard otomatis via `.php-cs-fixer.dist.php`
 
@@ -175,7 +211,7 @@ src/
 │   │   └── DispatchByMethod.php    # Trait — method dispatch via HTTP verb
 │   ├── Handlers/                   # JsonErrorRenderer, HttpErrorHandler
 │   ├── Helpers/                    # PaginationHelper (pure formatter)
-│   ├── Middleware/                 # JwtMiddleware, PermissionMiddleware, RateLimitMiddleware, CorsMiddleware
+│   ├── Middleware/                 # JwtMiddleware, PermissionMiddleware, RateLimitMiddleware, CorsMiddleware, SecurityHeadersMiddleware
 │   ├── Settings/                   # Config dari .env (auto-detect Docker/local)
 │   └── Validation/                 # UserValidator, LevelValidator, PageValidator
 ├── Domain/                         # Business logic, entities, repository interfaces + implementations
@@ -372,9 +408,9 @@ docker compose exec app ./vendor/bin/phpstan analyse src/ --level=5 --memory-lim
 
 | Suite | Test | Assertion |
 |---|---|---|
-| Unit (Domain logic, pagination, permission resolution) | 69 | 129 |
+| Unit (Validators, Domain logic, pagination, permission resolution) | 118 | 360 |
 | Integration (API endpoints) | 74 | 191 |
-| **Total** | **143** | **320** |
+| **Total** | **192** | **551** |
 
 ### Troubleshooting
 
