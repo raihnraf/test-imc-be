@@ -20,7 +20,7 @@ class TokenService
     {
         $this->secret = $settings['secret'] ?? '';
         $this->algorithm = $settings['algorithm'] ?? 'HS256';
-        $this->expiry = (int) ($settings['expiry'] ?? 3600);
+        $this->expiry = (int) ($settings['expiry'] ?? 900);
     }
 
     public function generateToken(array $userData, ?int $expiry = null): string

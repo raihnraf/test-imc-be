@@ -22,6 +22,10 @@ class PermissionMatrixAction extends BaseAction
 
     public function __invoke(Request $request, Response $response, array $args): Response
     {
+        $requestingUserId = (int) $request->getAttribute('user_id');
+        $requestingLevelId = (int) $request->getAttribute('level_id');
+        $isAdmin = $this->levelRepository->isSuperAdmin($requestingLevelId);
+
         $params = $request->getQueryParams();
         $levelId = isset($params['level_id']) ? (int) $params['level_id'] : null;
         $userId = isset($params['user_id']) ? (int) $params['user_id'] : null;
@@ -33,6 +37,10 @@ class PermissionMatrixAction extends BaseAction
         }
 
         if ($levelId !== null) {
+            if (!$isAdmin) {
+                return $this->errorResponse($response, 'FORBIDDEN', 'Admin access required to view level permissions', 403);
+            }
+
             $level = $this->levelRepository->findById($levelId);
             if ($level === null) {
                 return $this->notFoundResponse($response, 'Level not found');
@@ -48,6 +56,10 @@ class PermissionMatrixAction extends BaseAction
         }
 
         if ($userId !== null) {
+            if (!$isAdmin && $userId !== $requestingUserId) {
+                return $this->errorResponse($response, 'FORBIDDEN', 'You can only view your own permissions', 403);
+            }
+
             $user = $this->userRepository->findById($userId);
             if ($user === null) {
                 return $this->notFoundResponse($response, 'User not found');
@@ -60,6 +72,10 @@ class PermissionMatrixAction extends BaseAction
                 'type' => 'user',
                 'user_id' => $userId,
             ]);
+        }
+
+        if (!$isAdmin) {
+            return $this->errorResponse($response, 'FORBIDDEN', 'Admin access required', 403);
         }
 
         $pages = $this->permissionRepo->getAllPages();

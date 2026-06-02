@@ -46,6 +46,11 @@ class LevelRepository implements LevelRepositoryInterface
             ->count();
     }
 
+    public function isSuperAdmin(int $levelId): bool
+    {
+        return $levelId === 1;
+    }
+
     public function findPaginated(array $filters = [], int $page = 1, int $perPage = 15): PaginatedResult
     {
         $page = max(1, $page);
