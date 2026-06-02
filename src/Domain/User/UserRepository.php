@@ -54,7 +54,7 @@ class UserRepository implements UserRepositoryInterface
 
     private function buildFilteredQuery(array $filters = []): Builder
     {
-        $query = Capsule::table('users');
+        $query = Capsule::table('users')->whereNull('deleted_at');
 
         if (!empty($filters['search'])) {
             $search = $filters['search'];

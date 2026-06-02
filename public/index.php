@@ -8,6 +8,7 @@ use Dotenv\Dotenv;
 use Imc\Application\Handlers\HttpErrorHandler;
 use Imc\Application\Handlers\JsonErrorRenderer;
 use Imc\Application\Middleware\CorsMiddleware;
+use Imc\Application\Middleware\SecurityHeadersMiddleware;
 
 // Load environment variables
 $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
@@ -22,9 +23,11 @@ $app = Slim\Factory\AppFactory::create();
 
 // Middleware (LIFO: last added = first executed)
 // Cors must be outermost to catch OPTIONS preflight before Routing rejects them
+// SecurityHeaders must be outermost to ensure headers on ALL responses including CORS preflight
 $app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
 $app->add(CorsMiddleware::class);
+$app->add(SecurityHeadersMiddleware::class);
 
 // Error middleware
 $settings = $container->get('settings');
